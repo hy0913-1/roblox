@@ -7,19 +7,11 @@ local RunService = game:GetService("RunService")
 local GameConfig = require(ReplicatedStorage:WaitForChild("GameConfig"))
 local DataStore = DataStoreService:GetDataStore("ClickerData_v1")
 
--- RemoteEvents 생성
-local Events = Instance.new("Folder")
-Events.Name = "Events"
-Events.Parent = ReplicatedStorage
-
-local ClickEvent     = Instance.new("RemoteEvent", Events)
-ClickEvent.Name      = "OnClick"
-
-local BuyUpgradeEvent = Instance.new("RemoteEvent", Events)
-BuyUpgradeEvent.Name  = "BuyUpgrade"
-
-local SyncEvent      = Instance.new("RemoteEvent", Events)
-SyncEvent.Name       = "SyncData"
+-- Studio에서 미리 만들어둔 RemoteEvents 참조
+local Events          = ReplicatedStorage:WaitForChild("Events")
+local ClickEvent      = Events:WaitForChild("OnClick")
+local BuyUpgradeEvent = Events:WaitForChild("BuyUpgrade")
+local SyncEvent       = Events:WaitForChild("SyncData")
 
 -- 플레이어 데이터 기본값
 local function defaultData()
