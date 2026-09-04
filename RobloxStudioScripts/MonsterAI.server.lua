@@ -13,10 +13,15 @@
 	  - 매 프레임 가장 가까운 플레이어를 찾아 추격합니다.
 	  - 항상 "현재 붙어있는 면의 법선(normal)"을 기준으로 이동 방향을 그 면 위로
 	    투영시켜서, 바닥/벽/천장을 자연스럽게 타고 이동하도록 만듭니다.
-	  - 이동 방향 정면에 벽이 감지되면(코너/모서리) 그 벽의 법선으로 갈아타서
-	    벽을 관통하지 않고 타고 올라가도록 합니다.
-	  - 표면을 한동안 못 찾으면(허공에 뜨거나 지형에 파묻힌 경우) 위에서 아래로
-	    길게 레이를 쏴서 강제로 가까운 바닥/벽에 재배치합니다.
+	  - 이동 방향 정면에 "현재 면과 뚜렷이 다른 각도의" 벽이 가까이 감지되면
+	    법선만 그 벽으로 갈아탑니다(위치는 순간이동시키지 않고, 다음 프레임들에
+	    걸쳐 서서히 붙습니다). 바닥의 작은 턱/이음매를 벽으로 오인해도 위치가
+	    즉시 튀지 않도록 하기 위한 안전장치입니다.
+	  - 표면과의 거리 보정은 매 프레임 절반씩만 적용(Lerp)해서, 어떤 이유로든
+	    한 프레임에 계산이 어긋나더라도 위치가 순간이동/파묻힘 없이 부드럽게
+	    수렴하도록 합니다.
+	  - 표면을 한동안(기본 0.4초) 못 찾으면(허공에 뜨거나 지형에 파묻힌 경우)
+	    위에서 아래로 길게 레이를 쏴서 강제로 가까운 바닥/벽에 재배치합니다.
 	  - 몸의 파츠는 전부 Anchored로 고정해, 죽은 플레이어의 래그돌 물리 등에
 	    떠밀려 바닥에 파묻히는 문제를 원천적으로 막습니다.
 	  - 플레이어 캐릭터에 몸이 닿으면(Touched) 점프스케어 이벤트를 클라이언트에
@@ -38,7 +43,7 @@ local jumpscareEvent = ReplicatedStorage:WaitForChild("JumpscareEvent")
 local WALK_SPEED = 12 -- 이동 속도 (studs/sec)
 local DETECT_RANGE = 60 -- 이 거리 안에 있는 플레이어를 추격 시작
 local SURFACE_PROBE = 6 -- 표면을 찾기 위해 쏘는 레이 길이
-local FORWARD_PROBE = 3 -- 정면에 벽이 있는지 확인하는 레이 길이 (관통 방지 핵심)
+local FORWARD_PROBE = 2.5 -- 정면에 벽이 있는지 확인하는 레이 길이 (관통 방지 핵심)
 local HOVER_OFFSET = body.Size.Y / 2 -- 표면에서 몸을 띄우는 거리
 local JUMPSCARE_TIME = 1.5 -- 점프스케어 연출 후 실제로 죽이기까지 대기 시간
 local KILL_COOLDOWN = 3 -- 같은 플레이어를 다시 처리하기까지 대기 시간
@@ -138,36 +143,6 @@ local function findClosestTarget()
 	return closest
 end
 
--- 표면(법선)을 찾는다:
---  1) 정면에 벽이 있으면 그 벽으로 갈아탐 (관통 방지 + 코너에서 벽 타기 시작)
---  2) 지금 붙어있는 면이 계속 이어지는지 확인
---  3) 모서리 끝(외곽 코너)이면 다음 면 탐색
--- 아무것도 못 찾으면 nil을 반환한다 (호출부에서 유실 시간을 누적해 복구 처리)
-local function findSurface(moveDir)
-	if moveDir and moveDir.Magnitude > 0.01 then
-		local forwardResult = workspace:Raycast(body.Position, moveDir.Unit * FORWARD_PROBE, raycastParams)
-		if forwardResult and forwardResult.Normal:Dot(moveDir) < -0.3 then
-			return forwardResult.Normal, forwardResult.Position
-		end
-	end
-
-	local downOrigin = body.Position + currentNormal * 0.5
-	local downResult = workspace:Raycast(downOrigin, -currentNormal * SURFACE_PROBE, raycastParams)
-	if downResult then
-		return downResult.Normal, downResult.Position
-	end
-
-	if moveDir and moveDir.Magnitude > 0.01 then
-		local aheadOrigin = body.Position + moveDir.Unit * 1.5 + currentNormal * 0.5
-		local aheadResult = workspace:Raycast(aheadOrigin, -currentNormal * SURFACE_PROBE, raycastParams)
-		if aheadResult then
-			return aheadResult.Normal, aheadResult.Position
-		end
-	end
-
-	return nil, nil
-end
-
 -- up(법선)과 look(이동 방향)을 기준으로 직교 좌표계를 만들어 CFrame 생성
 local function buildCFrame(position, upVector, lookVector)
 	local right = lookVector:Cross(upVector)
@@ -183,7 +158,8 @@ local function buildCFrame(position, upVector, lookVector)
 end
 
 -- 표면을 한참 못 찾았을 때(허공에 뜨거나 지형에 파묻힌 경우) 위에서 아래로 길게
--- 쏴서 강제로 가까운 표면에 재배치한다.
+-- 쏴서 강제로 가까운 표면에 재배치한다. (유일하게 위치를 순간이동시키는 경로 -
+-- 정말로 표면을 잃어버렸을 때만 실행되는 마지막 안전장치)
 local function recoverSurface()
 	local result = workspace:Raycast(body.Position + Vector3.new(0, 50, 0), Vector3.new(0, -300, 0), raycastParams)
 	if not result then
@@ -207,25 +183,58 @@ local function step(target, dt)
 	end
 	local moveDir = along.Unit
 
-	local newNormal, hitPos = findSurface(moveDir)
-
-	if not newNormal then
-		lostSurfaceTime += dt
-		if lostSurfaceTime >= LOST_SURFACE_RECOVERY then
-			if recoverSurface() then
-				lostSurfaceTime = 0
-			end
+	-- 1) 정면에 "현재 면과 뚜렷이 다른 각도의" 벽이 가까이 있으면 법선만 그 벽으로
+	--    갈아탄다. 위치는 여기서 바꾸지 않는다 - 아래 3)에서 서서히 보정된다.
+	--    (바닥의 작은 턱/이음매는 법선이 currentNormal과 비슷하므로 걸러진다)
+	local forwardOrigin = body.Position + currentNormal * (HOVER_OFFSET * 0.5)
+	local forwardResult = workspace:Raycast(forwardOrigin, moveDir * FORWARD_PROBE, raycastParams)
+	if
+		forwardResult
+		and forwardResult.Normal:Dot(moveDir) < -0.4
+		and math.abs(forwardResult.Normal:Dot(currentNormal)) < 0.5
+	then
+		currentNormal = forwardResult.Normal
+		along = toTarget - currentNormal * toTarget:Dot(currentNormal)
+		if along.Magnitude < 0.01 then
 			return
 		end
-		newNormal = currentNormal
-	else
-		lostSurfaceTime = 0
+		moveDir = along.Unit
 	end
-	currentNormal = newNormal
 
+	-- 2) 지금 붙어있는 면이 계속 이어지는지 확인하고, 없으면 모서리 끝(외곽 코너)에서
+	--    다음 면을 찾는다.
+	local hitPos
+	local downOrigin = body.Position + currentNormal * 0.5
+	local downResult = workspace:Raycast(downOrigin, -currentNormal * SURFACE_PROBE, raycastParams)
+	if downResult then
+		hitPos = downResult.Position
+		currentNormal = downResult.Normal
+		lostSurfaceTime = 0
+	else
+		local aheadOrigin = body.Position + moveDir * 1.5 + currentNormal * 0.5
+		local aheadResult = workspace:Raycast(aheadOrigin, -currentNormal * SURFACE_PROBE, raycastParams)
+		if aheadResult then
+			hitPos = aheadResult.Position
+			currentNormal = aheadResult.Normal
+			lostSurfaceTime = 0
+		else
+			lostSurfaceTime += dt
+			if lostSurfaceTime >= LOST_SURFACE_RECOVERY then
+				if recoverSurface() then
+					lostSurfaceTime = 0
+				end
+				return
+			end
+		end
+	end
+
+	-- 3) 실제 위치는 "이번 프레임에 이동한 위치"와 "표면에 딱 붙는 위치"를 절반씩만
+	--    섞어서(Lerp) 적용한다. 표면 판정이 한 프레임 어긋나더라도 순간이동/파묻힘
+	--    없이 몇 프레임에 걸쳐 부드럽게 수렴한다.
 	local newPosition = body.Position + moveDir * WALK_SPEED * dt
 	if hitPos then
-		newPosition = hitPos + currentNormal * HOVER_OFFSET
+		local desired = hitPos + currentNormal * HOVER_OFFSET
+		newPosition = newPosition:Lerp(desired, 0.5)
 	end
 
 	local look = moveDir - currentNormal * moveDir:Dot(currentNormal)
