@@ -1,0 +1,188 @@
+{
+ "version": 1,
+ "hero": {
+  "mage": {
+   "down": [
+    "hero_mage_down_a.png",
+    "hero_mage_down_b.png"
+   ],
+   "up": [
+    "hero_mage_up_a.png",
+    "hero_mage_up_b.png"
+   ],
+   "right": [
+    "hero_mage_right_a.png",
+    "hero_mage_right_b.png"
+   ]
+  },
+  "knight": {
+   "down": [
+    "hero_knight_down_a.png",
+    "hero_knight_down_b.png"
+   ],
+   "up": [
+    "hero_knight_up_a.png",
+    "hero_knight_up_b.png"
+   ],
+   "right": [
+    "hero_knight_right_a.png",
+    "hero_knight_right_b.png"
+   ]
+  },
+  "ranger": {
+   "down": [
+    "hero_ranger_down_a.png",
+    "hero_ranger_down_b.png"
+   ],
+   "up": [
+    "hero_ranger_up_a.png",
+    "hero_ranger_up_b.png"
+   ],
+   "right": [
+    "hero_ranger_right_a.png",
+    "hero_ranger_right_b.png"
+   ]
+  },
+  "thief": {
+   "down": [
+    "hero_thief_down_a.png",
+    "hero_thief_down_b.png"
+   ],
+   "up": [
+    "hero_thief_up_a.png",
+    "hero_thief_up_b.png"
+   ],
+   "right": [
+    "hero_thief_right_a.png",
+    "hero_thief_right_b.png"
+   ]
+  }
+ },
+ "sprite": {
+  "slime": [
+   "sprite_slime_a.png",
+   "sprite_slime_b.png"
+  ],
+  "bat": [
+   "sprite_bat_a.png",
+   "sprite_bat_b.png"
+  ],
+  "archer": [
+   "sprite_archer_a.png",
+   "sprite_archer_b.png"
+  ],
+  "skeleton": [
+   "sprite_skeleton_a.png",
+   "sprite_skeleton_b.png"
+  ],
+  "king": [
+   "sprite_king_a.png",
+   "sprite_king_b.png"
+  ]
+ },
+ "enemy": {
+  "wolf": [
+   "enemy_wolf_a.png",
+   "enemy_wolf_b.png"
+  ],
+  "orc": [
+   "enemy_orc_a.png",
+   "enemy_orc_b.png"
+  ],
+  "golem": [
+   "enemy_golem_a.png",
+   "enemy_golem_b.png"
+  ],
+  "icegolem": [
+   "enemy_icegolem_a.png",
+   "enemy_icegolem_b.png"
+  ],
+  "imp": [
+   "enemy_imp_a.png",
+   "enemy_imp_b.png"
+  ],
+  "magma": [
+   "enemy_magma_a.png",
+   "enemy_magma_b.png"
+  ],
+  "goldslime": [
+   "enemy_goldslime_a.png",
+   "enemy_goldslime_b.png"
+  ],
+  "yeti": [
+   "enemy_yeti_a.png",
+   "enemy_yeti_b.png"
+  ],
+  "demon": [
+   "enemy_demon_a.png",
+   "enemy_demon_b.png"
+  ],
+  "gargoyle": [
+   "enemy_gargoyle_a.png",
+   "enemy_gargoyle_b.png"
+  ],
+  "goblin": [
+   "enemy_goblin_a.png",
+   "enemy_goblin_b.png"
+  ]
+ },
+ "npc": {
+  "elder": [
+   "npc_elder_a.png",
+   "npc_elder_b.png"
+  ],
+  "merchant": [
+   "npc_merchant_a.png",
+   "npc_merchant_b.png"
+  ],
+  "guard": [
+   "npc_guard_a.png",
+   "npc_guard_b.png"
+  ],
+  "kid": [
+   "npc_kid_a.png",
+   "npc_kid_b.png"
+  ],
+  "jobmaster": [
+   "npc_jobmaster_a.png",
+   "npc_jobmaster_b.png"
+  ],
+  "smith": [
+   "npc_smith_a.png",
+   "npc_smith_b.png"
+  ],
+  "board": [
+   "npc_board_a.png",
+   "npc_board_b.png"
+  ]
+ },
+ "prop": {
+  "lich": [
+   "prop_lich.png"
+  ],
+  "tree0": [
+   "prop_tree0.png"
+  ],
+  "tree1": [
+   "prop_tree1.png"
+  ],
+  "chest_wood": [
+   "prop_chest_wood.png"
+  ],
+  "chest_woodOpen": [
+   "prop_chest_woodOpen.png"
+  ],
+  "house0": [
+   "prop_house0.png"
+  ],
+  "well": [
+   "prop_well.png"
+  ]
+ },
+ "boss": {
+  "drake": [
+   "boss_drake_a.png",
+   "boss_drake_b.png"
+  ]
+ }
+}

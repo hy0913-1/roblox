@@ -232,7 +232,14 @@ const ROCKS = [0, 1, 2].map((v) => {
   return cv;
 });
 
+// image art (assets.js) swaps these in; the code-drawn trees stay as the fallback
+export const OVERRIDE = { trees: null, well: null, held: false };
 export function drawTree(ctx, x, y, v) {
+  const t = OVERRIDE.trees;
+  if (t) {
+    const im = t[v % t.length];
+    return ctx.drawImage(im, Math.round(x - (im.width >> 1)), Math.round(y - im.height + 1));
+  }
   ctx.drawImage(TREES[v % 3], Math.round(x - 13), Math.round(y - 33));
 }
 export function drawRock(ctx, x, y, v) {

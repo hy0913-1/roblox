@@ -6,7 +6,7 @@ import { W, H, TILE, ENEMIES, xpForLevel, SKILLS } from "./config.js";
 import { G, camera, npcMarker, darkness } from "./game.js";
 import { AIR, slotSkill } from "./skills.js";
 import { input } from "./input.js";
-import { SPRITES, drawTree, drawRock } from "./sprites.js";
+import { SPRITES, drawTree, drawRock, OVERRIDE } from "./sprites.js";
 import { HEROES, NPC_ART, LICH_ART, HOUSES, WELL, FENCE, SIGN, GRAVES, PILLAR, CAVE_MOUTH, CRYPT_GATE, BONES, CHESTS, COIN, LOOT_BAG, ICONS, PROPS, CAVE_MOUTHS, TOWER_GATE, ENEMY_ART, BOSS_ART } from "./art.js";
 import { CLASSES } from "./config.js";
 import { T } from "./world.js";
@@ -219,8 +219,8 @@ function drawObject(o, cx, cy) {
   switch (o.kind) {
     case "tree": return drawTree(ctx, x, y, o.v);
     case "rock": return drawRock(ctx, x, y, o.v);
-    case "house": return img(HOUSES[o.v], x - 28, y - 50);
-    case "well": return img(WELL, x - 12, y - 28);
+    case "house": { const im = HOUSES[o.v]; return img(im, x - (im.width >> 1), y - im.height + 2); }
+    case "well": { const im = OVERRIDE.well ?? WELL; return img(im, x - (im.width >> 1), y - im.height + 2); }
     case "fence": return img(FENCE, x - 8, y - 12);
     case "sign": return img(SIGN, x - 8, y - 18);
     case "grave": return img(GRAVES[o.v], x - 7, y - 15);
@@ -235,7 +235,7 @@ function drawObject(o, cx, cy) {
 }
 function drawChest(c, cx, cy) {
   const open = G.opened?.includes(c.id);
-  img(open ? (c.gold ? CHESTS.goldOpen : CHESTS.woodOpen) : c.gold ? CHESTS.gold : CHESTS.wood, c.x - cx - 8, c.y - cy - 14);
+  img(open ? (c.gold ? CHESTS.goldOpen : CHESTS.woodOpen) : c.gold ? CHESTS.gold : CHESTS.wood, c.x - cx - 8, c.y - cy - 14 - ((open ? (c.gold ? CHESTS.goldOpen : CHESTS.woodOpen) : c.gold ? CHESTS.gold : CHESTS.wood).height - 14));
   if (!open && Math.floor(G.time * 2 + c.x) % 4 === 0) {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(Math.round(c.x - cx + 4), Math.round(c.y - cy - 13), 1, 1);
@@ -247,6 +247,7 @@ function drawNpc(n, cx, cy) {
   const x = n.x - cx, y = n.y - cy;
   shadow(x, y, 12);
   img(im, x - (im.width >> 1), y - im.height + 1);
+  if (OVERRIDE.held) return;
   if (n.id === "elder") {
     ctx.fillStyle = "#5a3a20";
     ctx.fillRect(Math.round(x + 7), Math.round(y - 14), 1, 14);
@@ -289,11 +290,13 @@ function drawEnemy(e, cx, cy) {
     shadow(x, y, 8);
     img(im, x - (im.width >> 1) + shiver, y - e.z - im.height);
   } else if (e.type === "archer" || e.type === "skeleton") {
-    im = pick("archer", e, Math.floor(e.anim * 6) % 2 ? "flat" : "tall");
+    im = pick(e.type === "skeleton" && SPRITES.skeleton ? "skeleton" : "archer", e, Math.floor(e.anim * 6) % 2 ? "flat" : "tall");
     shadow(x, y, 10);
     img(im, x - (im.width >> 1) + shiver, y - im.height + 1);
     const side = G.player.x >= e.x ? 1 : -1;
-    if (e.type === "archer") {
+    if (OVERRIDE.held) {
+      // image art already holds its bow / sword
+    } else if (e.type === "archer") {
       const bx = x + side * 6, by = y - 9;
       ctx.fillStyle = "#6a4426";
       for (let i = -4; i <= 4; i++) ctx.fillRect(bx + side * Math.round(2 - (i * i) / 8), by + i, 1, 1);

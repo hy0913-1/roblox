@@ -1,0 +1,32 @@
+{
+ "note": "SpriteCook sheets used for the game art; raw PNGs are in assets-src/, tools/make_assets.py turns them into assets/",
+ "assets": [
+  {
+   "asset_id": "398413c9-299e-4f40-8f52-55904cf142a4",
+   "sha12": "8f8f2bf51ba1",
+   "label": "heroes sheet 4x3 (mage, knight, ranger, thief; down/up/right)",
+   "file": "assets-src/heroes.png",
+   "model": "gemini-nano-banana-2.1"
+  },
+  {
+   "asset_id": "002b2e28-2a1c-4ace-be2f-14e531741e24",
+   "sha12": "c0a79a13f471",
+   "label": "monsters sheet 4x4 (15 monsters + king slime)",
+   "file": "assets-src/monsters.png",
+   "model": "gemini-3.1-flash-lite-image"
+  },
+  {
+   "asset_id": "a29c1f71-2f11-4588-8bba-eb6e6dba3c76",
+   "sha12": "98158878e92c",
+   "label": "village sheet 4x4 (7 NPCs, lich, drake x2, trees x2, chests x2, house, well)",
+   "file": "assets-src/village.png",
+   "model": "gemini-3.1-flash-lite-image"
+  }
+ ],
+ "failed": [
+  {
+   "asset_id": "359b1256-3c74-401e-83f2-8421e3a3b05c",
+   "why": "boss sheet came back 48x48 for all 6 bosses (size hint 48 was applied to the whole sheet); unusable, not saved"
+  }
+ ]
+}

@@ -98,10 +98,49 @@ events, raid, bounty board, blacksmith, job branch choice, bag screen; no consol
 ## Known gaps and ideas (not done)
 
 - **Never played start to finish by hand.** Late-game balance (Lv 20+ bosses, enhancement odds, shop prices) is a guess.
-- All art is code-drawn at 14-18px tall. The user wants better art (see below).
+- Heroes, monsters, villagers, trees are now image art (see "그림 작업 진행 상황"); ground tiles, most props, item icons and UI are still code-drawn.
 - Ideas not started: pets, a second map for the highlands town, skill upgrade points, a proper pause-menu settings
   page, gamepad support, a larger map for the forest, achievements, NG+ after the ending.
 - `README.md` in `pixel-rpg/` describes the game for players; this file is for the next maintainer.
+
+## 그림 작업 진행 상황 (SpriteCook, done in session 2)
+
+SpriteCook tools were connected (free plan, 40 credits). **36 credits spent, 4 left** (not enough for another sheet).
+What was done, in the order of the plan below:
+
+| plan item | status |
+|---|---|
+| image-loading path | **done**: `assets.js` (see below), `build.mjs` inlines the PNGs, `tools/` makes them from sheets |
+| 1 heroes | **done** (mage, knight, ranger, thief; down/up/side; frame b is made by code: left foot lifts) |
+| 2 villagers | **done**: elder, merchant (+ wanderer, tinted), guard, kid, job master, smith, bounty board |
+| 3 monsters | **done**: slime, bat, skeleton archer, skeleton warrior (now used for `skeleton`), wolf, orc, golem, ice golem, imp, magma, gold slime, yeti, demon, gargoyle, goblin |
+| 4 bosses | **partly**: King Slime, Lich, Fire Drake (wings up/down) are new art; Orc Chief / Frost Giant / Bael are the new orc / yeti / demon scaled x2 with a crown or horns drawn on (`assets.js`, `bigger()`); a real boss sheet is still wanted |
+| 5 tilesets | **not done** (no credits); `world.js` still paints the ground in code |
+| 6 props | **partly**: 2 trees, 2 chests (gold = tinted wood), a house (other roofs recoloured), well. Not done: fence, signpost, graves, pillar, cave mouth, crypt gate, tent, anvil, rocks |
+| 7 item icons | **not done** |
+| 8 UI | **not done** |
+
+How it fits together:
+- `assets-src/*.png` are the raw SpriteCook sheets (ids and hashes in `spritecook-assets.json`). Keep them: re-cutting is free.
+- `python3 -I tools/make_assets.py` (run in `pixel-rpg/`, needs Pillow + numpy) cuts every cell, scales all with one factor per cell
+  height given in `tools/make_assets.py` / `tools/sheets_extra.py`, box-filters, redraws a 1 px edge outline, quantises the palette,
+  makes frame b, writes `assets/*.png` and `assets/manifest.json`. To add a sheet: add an entry to `tools/sheets_extra.py`
+  (grid, reading-order cells with `kind`/`key`/`h`), save the PNG in `assets-src/`, rerun.
+- `assets.js` `loadAssets()` runs from `main.js` right after `toTitle()`; it swaps the images into `SPRITES`, `HEROES`, `ENEMY_ART`,
+  `BOSS_ART`, `NPC_ART`, `LICH_ART`, `HOUSES`, `CHESTS` in place (and `OVERRIDE` in `sprites.js` for trees and the well). Anything
+  missing from the manifest, or no `assets/` folder at all, keeps the code-drawn art.
+- With image art, the code-drawn bow, sword, staff and spear overlays on archers, skeletons, the elder and the guard are skipped
+  (`OVERRIDE.held`), because the images hold their weapons.
+- `node build.mjs` puts the PNGs in `window.__ASSETS` (data: URLs): 79 PNGs, the whole page is about 505 KB.
+
+SpriteCook lessons learned (spend the credits better next time):
+- `gemini-3.1-flash-lite-image` is 8 credits and made sheets as good as `gemini-nano-banana-2.1` (12). Use it for sheets.
+- Size hint: 24x24 per cell gave a 200-250 px sheet (cells ~50-60 px, good). A hint of 48 with 16:9 gave a **48x48 sheet** for six
+  bosses: unusable, 8 credits lost. Keep the hint at 24 and the sheet 1:1. Pass the earlier sheets as `style_asset_ids` to keep the look.
+- Transparent background came back clean (binary alpha); no `remove_background` call was needed.
+- Characters were drawn about 60 px tall and are shrunk to 28 px (heroes) by `tools/sheet.py`; heroes are now bigger than the old 17 px
+  sprites. If they feel too big, change `HERO_H` in `tools/make_assets.py`. The hand-held weapon the game draws for each class
+  (`drawWeapon` in `render.js`) was placed for the old 17 px sprite and may need nudging.
 
 ## 그림 작업 계획 (art plan, the next job)
 

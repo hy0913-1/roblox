@@ -3,6 +3,7 @@
 import { setView } from "./config.js";
 import { G, newGame, loadGame, saveGame, update, interactable, openChest, respawnInTown, toast } from "./game.js";
 import { getScene } from "./world.js";
+import { loadAssets } from "./assets.js";
 import { initRender, draw, drawMinimap } from "./render.js";
 import { input, initInput, endFrame, releaseAll } from "./input.js";
 import { show, screen, menuOpen, showTitle, talkTo, readSign, openBag, initMenus, showPause, showEnding, updateHud } from "./ui.js";
@@ -99,6 +100,7 @@ function menuKeys() {
 }
 
 toTitle();
+loadAssets(); // image art swaps in as soon as it has loaded; until then (or without assets/) the code-drawn art shows
 let last = performance.now(), mapT = 0, saveT = 0;
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
