@@ -322,7 +322,7 @@ export function updateHud(target) {
     const key = `${id}|${Math.round(ratio * 40)}|${id && p.mp >= sk.mp}|${G.scene.safe}`;
     if (cache["s" + i] === key) continue;
     cache["s" + i] = key;
-    b.classList.toggle("off", !id || G.scene.safe);
+    b.classList.toggle("off", !id || !!G.scene.safe); // force must be a real boolean: undefined would flip it every update
     b.classList.toggle("hide", i === 4 && !id);
     b.classList.toggle("nomp", !!id && p.mp < sk.mp);
     b.classList.toggle("ready", !!id && ratio >= 1);
