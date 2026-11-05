@@ -92,6 +92,20 @@ driving the page and `window.__game`, plus screenshots read back. Useful pattern
 - A bot that holds the basic attack and walks to the nearest enemy exposed balance problems early
   (two 3-minute runs got a knight and a mage to Lv 4-5 with no deaths).
 
+**Playtest bot (session 2):** `node tools/playtest.mjs [mage knight ranger thief] [--branch 1]` (run in `pixel-rpg/`) plays the
+whole game with `tools/bot.js`: it runs `update()` faster than real time without drawing, walks (BFS, keeps off portals because
+a dungeon resets when you re-enter it), keeps range with ranged classes, casts every ready skill with auto-aim, drinks at 40 % HP,
+restocks in town, equips better gear, sells the rest, enhances up to +7, hands in quests remotely. One line per stage: levels,
+game minutes, deaths, potions, boss fight seconds, hits taken, lowest HP %. It does not dodge, so it is a pessimistic player
+for boss patterns and an optimistic one for aiming. A few minutes of real time per class.
+
+What it found and what was changed (config.js): before, every class beat Bael with **0 deaths at Lv 18-23** in about 20 game
+minutes; bosses died in 6-50 s (the giant, 8400 HP, in 9 s). Basic attacks are the main damage (about 3-4.7x atk per second).
+Boss HP raised (king 620→950, lich 1100→2000, chief 1400→3000, drake 2400→5000, giant 3000→7500, Bael 5200→10000), boss atk a
+little (16/18/26/32/38/44 → 17/20/30/36/42/46), enemy atk growth per level 0.17→0.2. After: all four classes still finish, with
+boss fights of 15-300 s, the lowest HP in a boss fight usually 10-40 %, and 0-2 deaths around the chief and the drake.
+Still true: players end at about Lv 22-23 (max 30), so the 3rd job (Lv 20) and Lv 25-30 see little use; there is no endgame.
+
 Last verified: all 8 class/branch combos cast all 7 slots without errors; all 6 bosses reach their patterns and die;
 events, raid, bounty board, blacksmith, job branch choice, bag screen; no console errors.
 

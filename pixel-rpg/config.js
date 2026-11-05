@@ -189,14 +189,14 @@ export const ENEMIES = {
   gargoyle: { name: "가고일", hp: 120, atk: 22, speed: 50, xp: 44, gold: [8, 18], hitY: 14, rad: 7, sight: 160, flying: true, range: 110, shootEvery: 2.4, arrowSpeed: 120 },
   goldslime: { name: "황금 슬라임", hp: 60, atk: 1, speed: 46, xp: 30, gold: [80, 140], hitY: 6, rad: 7, sight: 130, flee: true, event: true },
   goblin: { name: "보물 고블린", hp: 120, atk: 1, speed: 52, xp: 40, gold: [60, 120], hitY: 8, rad: 7, sight: 160, flee: true, event: true },
-  king: { name: "킹 슬라임", hp: 620, atk: 16, speed: 17, xp: 160, gold: [80, 120], hitY: 14, rad: 14, sight: 160, boss: true },
-  lich: { name: "리치", hp: 1100, atk: 18, speed: 22, xp: 420, gold: [200, 300], hitY: 14, rad: 9, sight: 170, boss: true, flying: true },
-  chief: { name: "오크 족장", hp: 1400, atk: 26, speed: 30, xp: 600, gold: [250, 350], hitY: 14, rad: 12, sight: 160, boss: true },
-  drake: { name: "화염 드레이크", hp: 2400, atk: 32, speed: 34, xp: 1300, gold: [400, 600], hitY: 18, rad: 16, sight: 190, boss: true, flying: true },
-  giant: { name: "서리 거인", hp: 3000, atk: 38, speed: 22, xp: 1800, gold: [500, 700], hitY: 22, rad: 16, sight: 170, boss: true },
-  demonking: { name: "마왕 바엘", hp: 5200, atk: 44, speed: 30, xp: 4000, gold: [1200, 1600], hitY: 22, rad: 14, sight: 200, boss: true },
+  king: { name: "킹 슬라임", hp: 950, atk: 17, speed: 17, xp: 160, gold: [80, 120], hitY: 14, rad: 14, sight: 160, boss: true },
+  lich: { name: "리치", hp: 2000, atk: 20, speed: 22, xp: 420, gold: [200, 300], hitY: 14, rad: 9, sight: 170, boss: true, flying: true },
+  chief: { name: "오크 족장", hp: 3000, atk: 30, speed: 30, xp: 600, gold: [250, 350], hitY: 14, rad: 12, sight: 160, boss: true },
+  drake: { name: "화염 드레이크", hp: 5000, atk: 36, speed: 34, xp: 1300, gold: [400, 600], hitY: 18, rad: 16, sight: 190, boss: true, flying: true },
+  giant: { name: "서리 거인", hp: 7500, atk: 42, speed: 22, xp: 1800, gold: [500, 700], hitY: 22, rad: 16, sight: 170, boss: true },
+  demonking: { name: "마왕 바엘", hp: 10000, atk: 46, speed: 30, xp: 4000, gold: [1200, 1600], hitY: 22, rad: 14, sight: 200, boss: true },
 };
-export const enemyScale = (lv) => ({ hp: 1 + 0.3 * (lv - 1), atk: 1 + 0.17 * (lv - 1) });
+export const enemyScale = (lv) => ({ hp: 1 + 0.3 * (lv - 1), atk: 1 + 0.2 * (lv - 1) });
 
 // ---- quests ----------------------------------------------------------------------------------------
 // type: kill (an enemy type, or "any" in a region), collect/find (key items), boss (an enemy type), level
