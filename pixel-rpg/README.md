@@ -20,6 +20,10 @@ python3 -m http.server 8000      # or: npx serve
 | K / R | ultimate: Glacier Ring (10 s cooldown, 0.4 s charge, freezes and hits everything in the ring) |
 | Enter | restart after game over |
 
+**On a phone** the touch controls appear by themselves: drag anywhere on the left half for a floating stick, hold
+BOLT to keep firing (it aims at the nearest slime), tap ULT for the ultimate. Landscape is the bigger view; tap the
+screen to restart after game over. Add `?touch=1` to the URL to try them on a desktop.
+
 Slimes chase you when you get close, hop at you and hurt on touch. Some drop a heart (+15 HP).
 
 ## The effects
@@ -44,6 +48,7 @@ To tweak one, edit its file and reload. To iterate with the pixelfx tools, copy 
 
 - `main.js` game loop, input, combat, HUD
 - `world.js` map generation and the ground painter
+- `touch.js` the touch stick and buttons
 - `sprites.js` the wizard, slime, heart, tree and rock, drawn from strings
 - `vendor/pixelfx/` the pixelfx core (MIT, see `LICENSE` and `NOTICE.md` there) and the four effects
 

@@ -2,18 +2,55 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0a10">
 <title>Frost Wizard</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #0b0a10; overflow: hidden; }
-  body { display: flex; align-items: center; justify-content: center; }
+  * { -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #0b0a10; overflow: hidden; overscroll-behavior: none; }
+  body { display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
   canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #000; touch-action: none; }
   #help { position: fixed; left: 0; right: 0; bottom: 6px; text-align: center; color: #8f8aa8; font: 12px/1.4 monospace; pointer-events: none; }
+  body.touch #help { display: none; }
+
+  /* portrait phone: the game sits at the top, the thumbs have the space below */
+  body.touch.portrait { align-items: flex-start; padding-top: max(10px, env(safe-area-inset-top)); box-sizing: border-box; }
+  #rotate { display: none; position: fixed; left: 0; right: 0; top: 46%; text-align: center; color: #6f6a88; font: 12px/1.5 monospace; pointer-events: none; }
+  body.touch.portrait #rotate { display: block; }
+
+  /* touch controls: hidden unless the device has a touch screen */
+  #ui { display: none; }
+  body.touch #ui { display: block; }
+  #stickzone { position: fixed; left: 0; top: 0; bottom: 0; width: 50%; touch-action: none; z-index: 2; }
+  #stick { position: fixed; left: calc(86px + env(safe-area-inset-left)); top: calc(100% - 96px - env(safe-area-inset-bottom)); width: 92px; height: 92px; margin: -46px 0 0 -46px; border-radius: 50%;
+    border: 2px solid rgba(155,220,255,.35); background: rgba(20,30,60,.22); pointer-events: none; z-index: 3; opacity: .55; transition: opacity .12s; }
+  #stick.on { opacity: 1; border-color: rgba(155,220,255,.8); background: rgba(20,30,60,.4); }
+  #knob { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: rgba(155,220,255,.55); border: 2px solid rgba(220,245,255,.8); }
+  .btn { position: fixed; z-index: 3; border-radius: 50%; border: 2px solid rgba(220,245,255,.75); color: #eaf8ff; font: bold 13px/1 monospace; display: flex; align-items: center; justify-content: center;
+    touch-action: none; padding: 0; outline: none; text-shadow: 0 1px 0 #0b0a10; }
+  #btn-bolt { right: calc(22px + env(safe-area-inset-right)); bottom: calc(26px + env(safe-area-inset-bottom)); width: 86px; height: 86px; background: rgba(58,139,216,.5); }
+  #btn-bolt.down { background: rgba(155,220,255,.75); transform: scale(.94); }
+  #btn-ult { right: calc(112px + env(safe-area-inset-right)); bottom: calc(104px + env(safe-area-inset-bottom)); width: 68px; height: 68px;
+    background: conic-gradient(rgba(155,220,255,.9) var(--p, 360deg), rgba(20,30,60,.65) 0); border-color: rgba(155,220,255,.6); }
+  #btn-ult::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgba(12,18,40,.88); }
+  #btn-ult span { position: relative; }
+  #btn-ult.ready { border-color: #ffffff; box-shadow: 0 0 14px rgba(155,220,255,.9); }
+  #btn-ult.ready::before { background: rgba(58,139,216,.85); }
+  #btn-ult.down { transform: scale(.94); }
 </style>
 </head>
 <body>
 <canvas id="game" width="320" height="180"></canvas>
 <div id="help">이동 WASD / 방향키 · 얼음탄 J 또는 Space · 궁극기 K 또는 R · 재시작 Enter</div>
+<div id="rotate">폰을 가로로 돌리면 더 크게 볼 수 있어요</div>
+<div id="ui">
+  <div id="stickzone"></div>
+  <div id="stick"><div id="knob"></div></div>
+  <button class="btn" id="btn-ult" aria-label="궁극기"><span>ULT</span></button>
+  <button class="btn" id="btn-bolt" aria-label="얼음탄"><span>BOLT</span></button>
+</div>
 <script type="module" src="./main.js"></script>
 </body>
 </html>

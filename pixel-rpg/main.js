@@ -8,6 +8,7 @@ import * as glacierRing from "./vendor/pixelfx/src/fx/rpg/glacier-ring.js";
 import * as slimePop from "./vendor/pixelfx/src/fx/rpg/slime-pop.js";
 import { makeSprite, tint, SPRITES, drawTree, drawRock } from "./sprites.js";
 import { buildWorld, isSolidAt, TILE, MAP_W, MAP_H } from "./world.js";
+import { touch, initTouch, setUltButton } from "./touch.js";
 
 const W = 320, H = 180;
 const canvas = document.getElementById("game");
@@ -92,8 +93,29 @@ function moveWithCollision(e, mx, my) {
 }
 
 // ---- actions ------------------------------------------------------------------------------------
+function faceFrom(p) {
+  p.face = Math.abs(p.dx) > Math.abs(p.dy) ? (p.dx > 0 ? "right" : "left") : p.dy > 0 ? "down" : "up";
+}
+
 function shootBolt() {
   const p = state.player;
+  if (touch.enabled) {
+    // aim assist on a touch screen: fire at the nearest slime in range, whichever way the stick points
+    let best = null, bd = 150;
+    for (const s of state.slimes) {
+      const d = Math.hypot(s.x - p.x, s.y - 6 - (p.y - 8));
+      if (!s.dead && d < bd) {
+        bd = d;
+        best = s;
+      }
+    }
+    if (best) {
+      const dx = best.x - p.x, dy = best.y - 6 - (p.y - 8), l = Math.hypot(dx, dy) || 1;
+      p.dx = dx / l;
+      p.dy = dy / l;
+      faceFrom(p);
+    }
+  }
   const ang = Math.atan2(p.dy, p.dx);
   const bolt = { x: p.x + p.dx * 8, y: p.y - 8 + p.dy * 8, vx: Math.cos(ang) * BOLT_SPEED, vy: Math.sin(ang) * BOLT_SPEED, ang, life: BOLT_LIFE };
   bolt.fxEntry = addFx(frostBolt, { x: bolt.x, y: bolt.y, angle: ang }, bolt);
@@ -181,6 +203,13 @@ function update(dt) {
   } else {
     let ix = (down("KeyD", "ArrowRight") ? 1 : 0) - (down("KeyA", "ArrowLeft") ? 1 : 0);
     let iy = (down("KeyS", "ArrowDown") ? 1 : 0) - (down("KeyW", "ArrowUp") ? 1 : 0);
+    let speed = 1;
+    if (touch.sx || touch.sy) {
+      // the touch stick is analog: push further to walk faster
+      ix = touch.sx;
+      iy = touch.sy;
+      speed = Math.min(1, Math.hypot(ix, iy)) * 0.5 + 0.5;
+    }
     p.moving = ix !== 0 || iy !== 0;
     if (p.moving) {
       const l = Math.hypot(ix, iy);
@@ -188,11 +217,11 @@ function update(dt) {
       iy /= l;
       p.dx = ix;
       p.dy = iy;
-      p.face = Math.abs(ix) > Math.abs(iy) ? (ix > 0 ? "right" : "left") : iy > 0 ? "down" : "up";
-      moveWithCollision(p, ix * PLAYER_SPEED * dt, iy * PLAYER_SPEED * dt);
-      p.walk += dt;
+      faceFrom(p);
+      moveWithCollision(p, ix * PLAYER_SPEED * speed * dt, iy * PLAYER_SPEED * speed * dt);
+      p.walk += dt * speed;
     }
-    if (down("KeyJ", "Space") && p.boltCd <= 0) shootBolt();
+    if ((down("KeyJ", "Space") || touch.bolt) && p.boltCd <= 0) shootBolt();
     if (down("KeyK", "KeyR") && p.ultCd <= 0) castUltimate();
   }
 
@@ -438,7 +467,7 @@ function drawHud(cx, cy) {
   if (state.over) {
     g.text("GAME OVER", W / 2, 70, hex("#ff6a6a"), { font: "big", scale: 2, align: "center", outline: dark });
     g.text(`KILLS ${state.kills}`, W / 2, 96, white, { font: "mini", scale: 1, align: "center", outline: dark });
-    g.text("PRESS ENTER", W / 2, 108, hex("#9bdcff"), { font: "mini", scale: 1, align: "center", outline: dark });
+    g.text(touch.enabled ? "TAP TO RESTART" : "PRESS ENTER", W / 2, 108, hex("#9bdcff"), { font: "mini", scale: 1, align: "center", outline: dark });
   }
   blit(hud, hudImg, hudCv, hudCtx, 0, 0);
 }
@@ -453,12 +482,27 @@ addEventListener("keydown", (e) => {
 addEventListener("keyup", (e) => keys.delete(e.code));
 addEventListener("blur", () => keys.clear());
 
+// Landscape and desktop scale by a whole number of *device* pixels, which keeps the pixel art perfectly crisp.
+// A portrait phone is too narrow for that to be big enough, so it fills the width instead.
 function fit() {
-  const s = Math.max(1, Math.min(Math.floor(innerWidth / W), Math.floor((innerHeight - 24) / H)));
-  canvas.style.width = W * s + "px";
-  canvas.style.height = H * s + "px";
+  const dpr = window.devicePixelRatio || 1, portrait = innerHeight > innerWidth && touch.enabled;
+  document.body.classList.toggle("portrait", portrait);
+  if (portrait) {
+    const w = Math.floor(innerWidth * dpr) / dpr;
+    canvas.style.width = w + "px";
+    canvas.style.height = (w * H) / W + "px";
+    return;
+  }
+  const availH = touch.enabled ? innerHeight : innerHeight - 24;
+  const k = Math.max(1, Math.floor(Math.min((innerWidth * dpr) / W, (availH * dpr) / H)));
+  canvas.style.width = (W * k) / dpr + "px";
+  canvas.style.height = (H * k) / dpr + "px";
 }
 addEventListener("resize", fit);
+addEventListener("orientationchange", () => setTimeout(fit, 150));
+
+initTouch({ onUlt: () => tapped.add("KeyK") });
+document.addEventListener("pointerdown", () => state.over && reset());
 fit();
 
 reset();
@@ -468,6 +512,7 @@ function frame(now) {
   last = now;
   update(dt);
   tapped.clear();
+  setUltButton(1 - state.player.ultCd / ULT_COOLDOWN, state.player.ultCd <= 0);
   draw();
   requestAnimationFrame(frame);
 }
