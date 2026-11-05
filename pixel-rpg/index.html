@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Frost Wizard</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0a10; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #000; touch-action: none; }
+  #help { position: fixed; left: 0; right: 0; bottom: 6px; text-align: center; color: #8f8aa8; font: 12px/1.4 monospace; pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="game" width="320" height="180"></canvas>
+<div id="help">이동 WASD / 방향키 · 얼음탄 J 또는 Space · 궁극기 K 또는 R · 재시작 Enter</div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
