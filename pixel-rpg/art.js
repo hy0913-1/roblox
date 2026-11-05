@@ -359,3 +359,233 @@ export function portraitUrl(img) {
 
 export const COIN = makeSprite([".kkk.", "kyYyk", "kyyyk", "kyyyk", ".kkk."], { k: "#4a2c08", y: "#f0b424", Y: "#fff6c4" });
 export const LOOT_BAG = makeSprite(["..kk..", ".kbbk.", "kbbbbk", "kbybbk", "kbbbbk", ".kkkk."], { k: "#1b1326", b: "#8e5c2c", y: "#ffd84a" });
+
+// =====================================================================================================
+// v4 additions: the thief, more villagers and props, the highland/volcano/ice/tower monsters and bosses
+// =====================================================================================================
+function up(src, k) {
+  const c = cv(src.width * k, src.height * k), g = c.getContext("2d");
+  g.imageSmoothingEnabled = false;
+  g.drawImage(src, 0, 0, c.width, c.height);
+  return c;
+}
+// an enemy's two frames plus hit-flash and frozen variants
+function set2(a, b) {
+  return { a, b, aFlash: tint(a, "#ffffff", 0.85), bFlash: tint(b, "#ffffff", 0.85), aIce: tint(a, "#9bdcff", 0.6), bIce: tint(b, "#9bdcff", 0.6) };
+}
+
+const THIEF_PAL = { k: "#1b1326", h: "#2a1f3a", H: "#4a3a66", s: "#f3c49d", e: "#1b1326", m: "#6b2a4a", p: "#3a2f4a", P: "#5a4a72", b: "#20182a", r: "#c684ff" };
+const THIEF = [
+  "....kkkkkk....",
+  "...khhhhhhk...",
+  "..khHhhhhhhk..",
+  "..khkkkkkkhk..",
+  "..khksssskhk..",
+  "...kmmmmmmk...",
+  "...kmmmmmmk...",
+  "..kppppppppk..",
+  ".kpPpprrppPpk.",
+  ".kpppbbbbpppk.",
+  ".kpPppppppPpk.",
+  ".kkppppppppkk.",
+  "..kppppppppk..",
+  "..kbbk..kbbk..",
+  "..kbbk..kbbk..",
+  "..kkkk..kkkk..",
+];
+const THIEF_FACE = THIEF.map((r, i) => (i === 4 ? "..khksesekhk.." : r));
+const THIEF_BACK = [...THIEF.slice(0, 3), "..khhhhhhhhk..", "..khhHhhhhhk..", "...khhhhhhk...", "...khhhhhhk...", ...THIEF.slice(7)];
+const THIEF_SIDE = THIEF.map((r, i) => (i === 4 ? "..khksssekk.." : r));
+HEROES.thief = dirSet(THIEF_FACE, THIEF_BACK, THIEF_SIDE, THIEF_PAL);
+
+// villagers: the job master (a hooded sage) and the smith (bald, big arms, apron)
+const SAGE = [
+  "....kkkkkk....", "...kppppppk...", "..kppPPppppk..", "..kpkkkkkkpk..", "..kpksssskpk..", "...ksessesk...", "...kssssssk...",
+  "..kppyppyppk..", ".kpppyyyypppk.", ".kpPppyypppPk.", ".kppppppppppk.", ".kppppppppppk.", ".kyyyyyyyyyyk.", "..kbbk..kbbk..", "..kkkk..kkkk..",
+];
+const SMITH = [
+  "....kkkkkk....", "...kssssssk...", "..kssssssssk..", "..ksseessssk..", "..kssssssssk..", "...khhhhhhk...", "..ksswwwwssk..",
+  ".ksskwwwwkssk.", ".ksskwwwwkssk.", ".kssklwwlkssk.", "..kkkwwwwkkk..", "...kllllllk...", "...kllllllk...", "..kbbk..kbbk..", "..kkkk..kkkk..",
+];
+for (const [id, rows, pal] of [
+  ["jobmaster", SAGE, { k: "#1b1326", p: "#3a2a6a", P: "#5a4a9a", s: "#f3c49d", e: "#1b1326", y: "#ffd84a", b: "#2a1a10" }],
+  ["smith", SMITH, { k: "#1b1326", s: "#d8a07a", e: "#1b1326", h: "#5a3020", w: "#6a5a4a", l: "#3a3040", b: "#2a1a10" }],
+]) {
+  const a = makeSprite(rows, pal), b = cv(a.width, a.height), g = b.getContext("2d");
+  g.drawImage(a, 0, 6, a.width, a.height - 6, 0, 6, a.width, a.height - 6);
+  g.drawImage(a, 0, 0, a.width, 6, 0, 1, a.width, 6);
+  NPC_ART[id] = [a, b];
+}
+// the bounty board (an "NPC" you read) and the wandering merchant (the merchant in a travelling cloak)
+NPC_ART.board = (() => {
+  const c = cv(22, 24), g = c.getContext("2d");
+  rect(g, 3, 10, 2, 14, "#4a3020");
+  rect(g, 17, 10, 2, 14, "#4a3020");
+  rect(g, 0, 2, 22, 14, "#1b1326");
+  rect(g, 1, 3, 20, 12, "#8e5c2c");
+  for (const [x, y, c2] of [[3, 5, "#ece8f4"], [9, 4, "#f2e6c4"], [15, 6, "#ece8f4"]]) {
+    rect(g, x, y, 5, 7, c2);
+    rect(g, x + 1, y + 2, 3, 1, "#6a4426");
+    rect(g, x + 1, y + 4, 2, 1, "#a8301a");
+  }
+  return [c, c];
+})();
+NPC_ART.wanderer = NPC_ART.merchant.map((im) => tint(im, "#6a4a2a", 0.35));
+
+export const PROPS = {
+  anvil: (() => {
+    const c = cv(18, 14), g = c.getContext("2d");
+    rect(g, 2, 11, 14, 3, "rgba(0,0,0,0.3)");
+    rect(g, 0, 2, 18, 5, "#1c1c24");
+    rect(g, 1, 3, 15, 3, "#7d7d8c");
+    rect(g, 1, 3, 15, 1, "#b4b4c4");
+    rect(g, 5, 7, 8, 5, "#1c1c24");
+    rect(g, 6, 7, 6, 4, "#5c5c6b");
+    return c;
+  })(),
+  stake: (() => {
+    const c = cv(8, 20), g = c.getContext("2d");
+    rect(g, 2, 3, 4, 17, "#2a1a10");
+    rect(g, 3, 2, 2, 17, "#8e5c2c");
+    rect(g, 3, 0, 2, 3, "#c9a46a");
+    return c;
+  })(),
+  tent: (() => {
+    const c = cv(52, 40), g = c.getContext("2d");
+    rect(g, 4, 36, 44, 4, "rgba(0,0,0,0.3)");
+    for (let i = 0; i < 20; i++) rect(g, 26 - i * 1.2 - 1, 16 + i, i * 2.4 + 2, 1, "#1b1326");
+    for (let i = 0; i < 19; i++) rect(g, 26 - i * 1.2, 17 + i, i * 2.4, 1, i % 4 < 2 ? "#8a5a2a" : "#6a4420");
+    rect(g, 22, 26, 8, 11, "#1b0e08");
+    rect(g, 25, 2, 2, 16, "#4a3020");
+    rect(g, 27, 2, 10, 6, "#a8301a");
+    rect(g, 29, 4, 3, 2, "#1b1326");
+    return c;
+  })(),
+  crystal: (() => {
+    const c = cv(10, 16), g = c.getContext("2d");
+    rect(g, 2, 14, 7, 2, "rgba(0,0,0,0.3)");
+    for (let i = 0; i < 12; i++) rect(g, 5 - Math.ceil(i / 4), 2 + i, Math.ceil(i / 4) * 2 + 1, 1, i < 4 ? "#dcf2ff" : "#7cc8ff");
+    rect(g, 4, 3, 1, 9, "#ffffff");
+    return c;
+  })(),
+};
+export const CAVE_MOUTHS = {
+  volcano: tint(CAVE_MOUTH, "#a8301a", 0.45),
+  ice: tint(CAVE_MOUTH, "#9bdcff", 0.5),
+};
+export const TOWER_GATE = [tint(CRYPT_GATE[0], "#5e3290", 0.45), tint(CRYPT_GATE[1], "#5e3290", 0.45)];
+
+// ---- monsters ----------------------------------------------------------------------------------------
+const WOLF_A = ["..........kk..", ".........kgGk.", "kk......kgggek", "kgk..kkkggggkk", ".kgkkgggggggk.", "..kggGggggggk.", "..kgggggggggk.", "..kgkkgkkkgk..", "..kk..k...kk..", ".............."];
+const WOLF_B = ["..........kk..", ".........kgGk.", "k.......kgggek", "kgkkkkkkggggkk", ".kggggggggggk.", "..kgGgggggggk.", "..kgggggggggk.", "...kgk..kgk...", "..kk.....kk...", ".............."];
+const ORC_A = ["....kkkkk.....", "...kgggggk....", "..kgekgekgk...", "..kgggwggwk...", "...kgwwwgk....", "..kbbbbbbbk...", ".kgbbybbbbgk..", ".kgbbbbbbbgk..", ".kgkbbbbbkgk..", "..kkllllkk....", "...kllkllk....", "..kkkk.kkkk..."];
+const ORC_B = [...ORC_A.slice(0, 10), "...kllkllk....", "...kkk.kkk...."];
+const GOLEM_A = ["...kkkkkk....", "..kssSsssk...", "..ksekssek...", "..kssssssk...", ".kkssssssskk.", "kssksssssksk.", "ksskSsssskssk", "ksskssSsskssk", ".kkkssssskkk.", "...ksskssk...", "..kkssksskk..", "..kkk...kkk.."];
+const GOLEM_B = [...GOLEM_A.slice(0, 10), "..kssk.kssk..", "..kkk...kkk.."];
+const IMP_A = ["k..........k", "kk..kkkk..kk", ".kkkrrrrkkk.", "..krryyrrk..", "..kryrryrk..", "...krrrrk...", "..kkrrrrkk..", ".k.krrrrk.k.", "...krrrrk...", "....krrk....", "....k..k...."];
+const IMP_B = ["............", "k...kkkk...k", "kkkkrrrrkkkk", "..krryyrrk..", "..kryrryrk..", "...krrrrk...", "...krrrrk...", "..kkrrrrkk..", "...krrrrk...", "....krrk....", "...k....k..."];
+const YETI_A = ["...kkkkkk....", "..kwwwwwwk...", ".kwwkbbkwwk..", ".kwwbebebwk..", ".kwwbbbbbwk..", "kwwwwbbwwwwk.", "kwkwwwwwwkwk.", "kwkwwwwwwkwk.", "kbkwwwwwwkbk.", ".kkwwwwwwkk..", "..kwwk.kwwk..", "..kkkk.kkkk.."];
+const YETI_B = [...YETI_A.slice(0, 10), "..kwwkkwwk...", "..kkkk.kkk..."];
+const DEMON_A = ["k...kkkk...k.", "kk.krrrrk.kk.", ".kkrkrrkrkk..", "..krerrerk...", "..krrrrrrk...", "...krwwrk....", "..kkrrrrkk...", ".krrkrrkrrk..", ".krkrrrrkrk..", "..kkrrrrkk...", "...krrkrrk...", "..kkk..kkk..."];
+const DEMON_B = [...DEMON_A.slice(0, 10), "...krkkrk....", "...kk..kk...."];
+const GARG_A = ["k.....kk.....k", "kk...kssk...kk", "ksk.kssssk.ksk", "kssksesseskssk", ".ksssssssssk..", "..kssssssssk..", "...kssssssk...", "...ksk..ksk...", "...kk....kk..."];
+const GARG_B = [".....kk.......", "....kssk......", "kkkkssssskkkkk", "kssksesseskssk", ".kssssssssssk.", "...kssssssk...", "...kssssssk...", "...ksk..ksk...", "...kk....kk..."];
+const GOBLIN_A = ["...kkkkk.....", "..kgggggk....", "kkgekggekgkk.", "kggggwwgggk..", ".kggggggggk..", "..kbbbbbbk.yy", ".kgbyyybbgkyy", ".kgbbbbbbgkyk", "..kkbbbbkk...", "...kbk.kbk...", "...kk...kk..."];
+const GOBLIN_B = [...GOBLIN_A.slice(0, 9), "...kbkkbk....", "...kk..kk...."];
+const SLIME_ROWS_TALL = ["....kkkkkk....", "...kGGGgggk...", "..kGGgggggdk..", "..kgggggggdk..", ".kgewgggewgdk.", ".kgeegggeegdk.", ".kgggggggggdk.", ".kdgggggggddk.", "..kdddddddddk.", "...kkkkkkkk..."];
+const SLIME_ROWS_FLAT = ["...kkkkkkkk...", "..kGGgggggdk..", ".kGggggggggdk.", "kgewgggewgggdk", "kgeegggeegggdk", "kdgggggggggddk", ".kdddddddddddk", "..kkkkkkkkkk.."];
+const slimeColor = (g, G, d) => ({ k: "#1a0a08", g, G, d, e: "#1a0a08", w: "#ffffff" });
+
+export const ENEMY_ART = {
+  wolf: set2(makeSprite(WOLF_A, { k: "#1a1620", g: "#6e6a7a", G: "#a4a0b4", e: "#ffd84a" }), makeSprite(WOLF_B, { k: "#1a1620", g: "#6e6a7a", G: "#a4a0b4", e: "#ffd84a" })),
+  orc: set2(makeSprite(ORC_A, { k: "#141a10", g: "#5a8a3a", e: "#ff4a3a", w: "#ece8d4", b: "#6a4426", y: "#ffd84a", l: "#3a3040" }), makeSprite(ORC_B, { k: "#141a10", g: "#5a8a3a", e: "#ff4a3a", w: "#ece8d4", b: "#6a4426", y: "#ffd84a", l: "#3a3040" })),
+  golem: set2(makeSprite(GOLEM_A, { k: "#1c1c24", s: "#7d7d8c", S: "#a4a4b2", e: "#ffb04a" }), makeSprite(GOLEM_B, { k: "#1c1c24", s: "#7d7d8c", S: "#a4a4b2", e: "#ffb04a" })),
+  icegolem: set2(makeSprite(GOLEM_A, { k: "#1c2a3c", s: "#8cc4f4", S: "#dcf2ff", e: "#3f8cff" }), makeSprite(GOLEM_B, { k: "#1c2a3c", s: "#8cc4f4", S: "#dcf2ff", e: "#3f8cff" })),
+  imp: set2(makeSprite(IMP_A, { k: "#1a0606", r: "#d8361e", y: "#ffd84a" }), makeSprite(IMP_B, { k: "#1a0606", r: "#d8361e", y: "#ffd84a" })),
+  yeti: set2(makeSprite(YETI_A, { k: "#1c2a3c", w: "#ecf4ff", b: "#4a6a9a", e: "#ff4a3a" }), makeSprite(YETI_B, { k: "#1c2a3c", w: "#ecf4ff", b: "#4a6a9a", e: "#ff4a3a" })),
+  demon: set2(makeSprite(DEMON_A, { k: "#120610", r: "#8a1a3a", e: "#ffd84a", w: "#ece8d4" }), makeSprite(DEMON_B, { k: "#120610", r: "#8a1a3a", e: "#ffd84a", w: "#ece8d4" })),
+  gargoyle: set2(makeSprite(GARG_A, { k: "#141418", s: "#5c5c6b", e: "#ff4a4a" }), makeSprite(GARG_B, { k: "#141418", s: "#5c5c6b", e: "#ff4a4a" })),
+  goblin: set2(makeSprite(GOBLIN_A, { k: "#141a10", g: "#7aa83a", e: "#ffd84a", w: "#ffffff", b: "#6a4426", y: "#ffd84a" }), makeSprite(GOBLIN_B, { k: "#141a10", g: "#7aa83a", e: "#ffd84a", w: "#ffffff", b: "#6a4426", y: "#ffd84a" })),
+  magma: set2(makeSprite(SLIME_ROWS_TALL, slimeColor("#d8361e", "#ffb04a", "#8a1a10")), makeSprite(SLIME_ROWS_FLAT, slimeColor("#d8361e", "#ffb04a", "#8a1a10"))),
+  goldslime: set2(makeSprite(SLIME_ROWS_TALL, slimeColor("#f0b424", "#fff6c4", "#a8700c")), makeSprite(SLIME_ROWS_FLAT, slimeColor("#f0b424", "#fff6c4", "#a8700c"))),
+};
+
+// ---- bosses ------------------------------------------------------------------------------------------
+function boss(base, k, decorate) {
+  const big = up(base, k), c = cv(big.width + 8, big.height + 10), g = c.getContext("2d");
+  g.drawImage(big, 4, 10);
+  decorate?.(g, c);
+  return c;
+}
+const chiefA = boss(ENEMY_ART.orc.a, 2, (g, c) => {
+  rect(g, 8, 4, c.width - 20, 8, "#1c1c24");
+  rect(g, 9, 5, c.width - 22, 6, "#8a96ac");
+  for (const x of [8, c.width - 14]) rect(g, x, 0, 3, 7, "#ece8d4");
+});
+const chiefB = boss(ENEMY_ART.orc.b, 2, (g, c) => {
+  rect(g, 8, 4, c.width - 20, 8, "#1c1c24");
+  rect(g, 9, 5, c.width - 22, 6, "#8a96ac");
+  for (const x of [8, c.width - 14]) rect(g, x, 0, 3, 7, "#ece8d4");
+});
+const giantA = boss(ENEMY_ART.yeti.a, 2, (g) => {
+  rect(g, 10, 2, 26, 4, "#3f8cff");
+  for (const x of [10, 18, 26, 34]) rect(g, x, 0, 2, 4, "#dcf2ff");
+});
+const giantB = boss(ENEMY_ART.yeti.b, 2, (g) => {
+  rect(g, 10, 2, 26, 4, "#3f8cff");
+  for (const x of [10, 18, 26, 34]) rect(g, x, 0, 2, 4, "#dcf2ff");
+});
+const kingDemon = (src) =>
+  boss(src, 2, (g, c) => {
+    // a cape behind, a crown of horns
+    g.globalCompositeOperation = "destination-over";
+    rect(g, 6, 22, c.width - 12, c.height - 26, "#3a0a1a");
+    g.globalCompositeOperation = "source-over";
+    for (const [x, h] of [[10, 9], [16, 6], [c.width / 2 - 1, 10], [c.width - 18, 6], [c.width - 12, 9]]) rect(g, Math.round(x), 10 - h, 2, h, "#ffd84a");
+  });
+const demonA = kingDemon(ENEMY_ART.demon.a), demonB = kingDemon(ENEMY_ART.demon.b);
+// the drake: drawn from shapes, 56x40, wings up and down
+function drake(wingsUp) {
+  const c = cv(60, 44), g = c.getContext("2d"), body = "#a8301a", belly = "#ffb04a", dark = "#3d1012", hi = "#e8501a";
+  const wing = (dir) => {
+    for (let i = 0; i < 16; i++) {
+      const y = wingsUp ? 6 + i * 0.6 : 18 + i * 0.4, h = wingsUp ? 18 - i : 10 + i * 0.3;
+      rect(g, 30 + dir * (6 + i), Math.round(y), 1, Math.round(h), i % 4 === 0 ? dark : "#7a1f1a");
+    }
+  };
+  wing(-1);
+  wing(1);
+  disc(g, 30, 28, 12, dark);
+  disc(g, 30, 28, 11, body);
+  disc(g, 30, 31, 7, belly);
+  disc(g, 30, 14, 7, dark);
+  disc(g, 30, 14, 6, body);
+  rect(g, 26, 12, 3, 2, "#ffe066");
+  rect(g, 32, 12, 3, 2, "#ffe066");
+  rect(g, 27, 18, 7, 2, dark);
+  for (const x of [24, 35]) rect(g, x, 6, 2, 5, "#ece8d4");
+  rect(g, 21, 38, 5, 4, dark);
+  rect(g, 34, 38, 5, 4, dark);
+  rect(g, 25, 22, 10, 1, hi);
+  return c;
+}
+const drakeA = drake(true), drakeB = drake(false);
+export const BOSS_ART = {
+  chief: set2(chiefA, chiefB),
+  giant: set2(giantA, giantB),
+  demonking: set2(demonA, demonB),
+  drake: set2(drakeA, drakeB),
+};
+
+// ---- more item icons -----------------------------------------------------------------------------------
+Object.assign(ICON_ROWS, {
+  dagger: ["............", ".........kk.", "........kWk.", ".......kWk..", "......kWk...", ".....kWk....", "...k.kk.....", "...kkyk.....", "....kbk.....", "...kbk......", "..kbk.......", "..kk........"],
+  helmet: ["............", "...kkkkkk...", "..kMMMMMMk..", ".kMWMMMMMMk.", ".kMMMMMMMMk.", ".kMkkkkkkMk.", ".kMk....kMk.", ".kMk....kMk.", "..kk....kk..", "............", "............", "............"],
+  armor: ["..kk....kk..", ".kmmk..kmmk.", "kmMmmmkmmMmk", "kmmkmMmMmkmk", ".kkmMmMmmkk.", "..kmmMmMmk..", "..kmMmMmMmk.", "..kmmMmMmmk.", "..kmMmMmMmk.", "..kmmmmmmmk.", "..kkkkkkkkk.", "............"],
+  boots: ["............", "..kkk.......", "..kbk.......", "..kbk..kkk..", "..kbk..kbk..", "..kbbk.kbk..", "..kbbbkkbk..", "..kkkkkkbbk.", ".......kbbbk", ".......kkkkk", "............", "............"],
+  elixir: ["....kkk.....", "....kyk.....", "...kkkkk....", "..krrrrrk...", ".krWrrrrrk..", ".kryyyyyrk..", ".kryrrryrk..", ".kryyyyyrk..", ".krrrrrrrk..", "..kkkkkkk...", "............", "............"],
+  scroll: ["............", ".kkkkkkkkk..", "kwwwwwwwwwk.", "kwkkkkkkwwk.", "kwwwwwwwwwk.", "kwkkkkkwwwk.", "kwwwwwwwwwk.", "kwkkkkkkwwk.", "kwwwwwwwwwk.", ".kkkkkkkkk..", "............", "............"],
+  ore: ["............", "....kkkk....", "..kkmmMmkk..", ".kmmMmmmmmk.", ".kmyMmmymmk.", "kmmmmmmmMmk.", "kmMmmymmmmk.", ".kmmmmmMmk..", "..kkkkkkk...", "............", "............", "............"],
+  token: ["....kkkk....", "...kyyyyk...", "..kyrrrryk..", ".kyrkyykryk.", ".kyrykkyryk.", ".kyrkyykryk.", "..kyrrrryk..", "...kyyyyk...", "....kkkk....", "....k..k....", "...k....k...", "............"],
+});
+for (const [k, rows] of Object.entries(ICON_ROWS)) if (!ICONS[k]) ICONS[k] = makeSprite(rows, ICON_PAL);

@@ -76,7 +76,8 @@ body.playing #skills { display: block; }
 .sk.aiming .aimdot { opacity: .9; }
 .sk.down { transform: scale(.95); }
 #btn-s0 { --p: 360deg; }
-#btn-s4 { background: conic-gradient(rgba(255,176,74,.9) var(--p, 360deg), rgba(40,20,10,.75) 0); }
+#btn-s6 { background: conic-gradient(rgba(255,176,74,.9) var(--p, 360deg), rgba(40,20,10,.75) 0); }
+#btn-s4, #btn-s5 { background: conic-gradient(rgba(255,216,74,.9) var(--p, 360deg), rgba(40,30,10,.75) 0); }
 .pot { position: relative; display: flex; align-items: center; justify-content: center; padding: 0; border: 2px solid var(--edge); background: rgba(18,23,41,.85); }
 .pot b { position: absolute; right: 3px; bottom: 1px; font: 10px var(--pixel); }
 .pot i { width: 14px; height: 18px; border-radius: 3px 3px 7px 7px; border: 2px solid #0b0a10; display: block; }
@@ -98,13 +99,15 @@ body.touch #stickzone { position: fixed; left: 0; top: 0; bottom: 0; width: 42%;
 #knob { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: rgba(155,220,255,.55); border: 2px solid rgba(220,245,255,.8); }
 body.touch .sk, body.touch .pot { position: fixed; z-index: 3; border-radius: 50%; }
 body.touch #btn-s0 { right: calc(18px + env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom)); width: 84px; height: 84px; }
-body.touch #btn-s1 { right: calc(112px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom)); width: 62px; height: 62px; }
-body.touch #btn-s2 { right: calc(100px + env(safe-area-inset-right)); bottom: calc(88px + env(safe-area-inset-bottom)); width: 62px; height: 62px; }
-body.touch #btn-s3 { right: calc(30px + env(safe-area-inset-right)); bottom: calc(114px + env(safe-area-inset-bottom)); width: 62px; height: 62px; }
-body.touch #btn-s4 { right: calc(182px + env(safe-area-inset-right)); bottom: calc(24px + env(safe-area-inset-bottom)); width: 58px; height: 58px; }
+body.touch #btn-s1 { right: calc(110px + env(safe-area-inset-right)); bottom: calc(12px + env(safe-area-inset-bottom)); width: 60px; height: 60px; }
+body.touch #btn-s2 { right: calc(100px + env(safe-area-inset-right)); bottom: calc(82px + env(safe-area-inset-bottom)); width: 60px; height: 60px; }
+body.touch #btn-s3 { right: calc(34px + env(safe-area-inset-right)); bottom: calc(110px + env(safe-area-inset-bottom)); width: 60px; height: 60px; }
+body.touch #btn-s4 { right: calc(176px + env(safe-area-inset-right)); bottom: calc(40px + env(safe-area-inset-bottom)); width: 56px; height: 56px; }
+body.touch #btn-s5 { right: calc(166px + env(safe-area-inset-right)); bottom: calc(106px + env(safe-area-inset-bottom)); width: 56px; height: 56px; }
+body.touch #btn-s6 { right: calc(100px + env(safe-area-inset-right)); bottom: calc(150px + env(safe-area-inset-bottom)); width: 52px; height: 52px; }
 body.touch #btn-hp { left: calc(14px + env(safe-area-inset-left)); bottom: calc(176px + env(safe-area-inset-bottom)); width: 44px; height: 44px; }
 body.touch #btn-mp { left: calc(64px + env(safe-area-inset-left)); bottom: calc(176px + env(safe-area-inset-bottom)); width: 44px; height: 44px; }
-body.touch #btn-act { display: flex; position: fixed; z-index: 3; right: calc(178px + env(safe-area-inset-right)); bottom: calc(96px + env(safe-area-inset-bottom)); width: 70px; height: 70px; border-radius: 50%;
+body.touch #btn-act { display: flex; position: fixed; z-index: 3; right: calc(22px + env(safe-area-inset-right)); bottom: calc(180px + env(safe-area-inset-bottom)); width: 66px; height: 66px; border-radius: 50%;
   border: 3px solid #fff; background: rgba(255,200,80,.85); color: #2a1a00; font-size: 18px; align-items: center; justify-content: center; box-shadow: 0 0 14px rgba(255,200,80,.7); }
 body.touch #btn-act.hide { display: none; }
 body.touch .sk .kk { font-size: 8px; }
@@ -127,7 +130,7 @@ h2 small { display: block; font: 16px var(--hangul); color: var(--muted); margin
 .hint { color: var(--muted); font-size: 15px; margin: 6px 0; }
 .controls { font-size: 14px; color: var(--muted); max-width: 440px; line-height: 1.5; margin: 0; }
 
-#class-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; }
+#class-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; }
 @media (orientation: portrait) { #class-cards { grid-template-columns: 1fr; } .class-card { flex-direction: row !important; flex-wrap: wrap; text-align: left !important; } .class-card img { width: 56px !important; } }
 .class-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 10px; border-radius: 12px; background: var(--panel); border: 2px solid var(--edge); text-align: center; min-width: 0; }
 .class-card:hover, .class-card:focus-visible { border-color: var(--tag); }
@@ -170,6 +173,13 @@ h2 small { display: block; font: 16px var(--hangul); color: var(--muted); margin
 .cell { width: 40px; height: 40px; border-radius: 8px; border: 2px solid var(--r, var(--edge)); background: var(--panel-2); padding: 0; display: flex; align-items: center; justify-content: center; }
 .cell img { width: 30px; image-rendering: pixelated; }
 .cell.sel { box-shadow: 0 0 0 2px #fff; }
+.cell { position: relative; }
+.cell em { position: absolute; right: 1px; bottom: 0; font: 9px var(--pixel); font-style: normal; color: #ffe066; text-shadow: 0 1px 0 #000; }
+#smith-list { display: flex; flex-wrap: wrap; gap: 6px; }
+#smith-detail { background: var(--panel-2); border-radius: 10px; padding: 8px 10px; text-align: left; }
+#smith-detail p { margin: 2px 0 8px; }
+#shop-title { font-size: 16px; color: var(--gold); }
+#dlg-text { white-space: pre-line; }
 .cell.empty { border-color: #20283f; background: #0f1322; }
 #bag-grid { display: grid; grid-template-columns: repeat(6, 40px); gap: 6px; }
 #consumables { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
@@ -220,7 +230,9 @@ h2 small { display: block; font: 16px var(--hangul); color: var(--muted); margin
   <div class="bar">
     <button class="pot" id="btn-hp" data-key="1" aria-label="체력 물약"><i></i><b id="hp-count"></b></button>
     <button class="pot" id="btn-mp" data-key="2" aria-label="마나 물약"><i></i><b id="mp-count"></b></button>
+    <button class="sk" id="btn-s6"><span class="aimdot"></span><span class="nm"></span><span class="kk"></span></button>
     <button class="sk" id="btn-s4"><span class="aimdot"></span><span class="nm"></span><span class="kk"></span></button>
+    <button class="sk" id="btn-s5"><span class="aimdot"></span><span class="nm"></span><span class="kk"></span></button>
     <button class="sk" id="btn-s1"><span class="aimdot"></span><span class="nm"></span><span class="kk"></span></button>
     <button class="sk" id="btn-s2"><span class="aimdot"></span><span class="nm"></span><span class="kk"></span></button>
     <button class="sk" id="btn-s3"><span class="aimdot"></span><span class="nm"></span><span class="kk"></span></button>
@@ -232,9 +244,9 @@ h2 small { display: block; font: 16px var(--hangul); color: var(--muted); margin
 <section class="ov" id="ov-title" hidden>
   <div class="box">
     <h1 class="logo">FROST<br><b>WIZARD</b></h1>
-    <p class="sub">마을을 지키는 모험 · 퀘스트, 던전, 보물</p>
+    <p class="sub">4개 직업 · 2차/3차 전직 · 던전 6곳 · 보스 6마리 · 마왕을 쓰러뜨려라</p>
     <div class="row"><button class="big-btn" id="btn-continue">이어하기</button><button class="big-btn" id="btn-new">새로 시작</button></div>
-    <p class="controls">PC: WASD 이동 · 마우스로 조준 · 왼쪽 클릭/J 공격 · Q E R 스킬 · F 공습 · 1 2 물약 · Space 대화 · I 가방 · M 지도<br>폰: 왼쪽을 끌어 이동 · 스킬 버튼을 탭하면 자동 조준, 끌면 직접 조준</p>
+    <p class="controls">PC: WASD 이동 · 마우스 조준 · 왼쪽 클릭/J 공격 · Q E R 스킬 · T G 전직 스킬 · F 공습 · 1 2 물약 · Space 대화 · I 가방 · M 지도<br>폰: 왼쪽을 끌어 이동 · 스킬 버튼을 탭하면 자동 조준, 끌면 직접 조준</p>
   </div>
 </section>
 
@@ -273,8 +285,16 @@ h2 small { display: block; font: 16px var(--hangul); color: var(--muted); margin
 
 <section class="ov" id="ov-shop" hidden>
   <div class="panel scroll">
-    <div class="tabs"><button id="shop-buy">구매</button><button id="shop-sell">판매</button><span id="shop-gold"></span><button class="ghost-btn x" id="shop-close">닫기</button></div>
+    <div class="tabs"><span id="shop-title"></span><button id="shop-buy">구매</button><button id="shop-sell">판매</button><span id="shop-gold"></span><button class="ghost-btn x" id="shop-close">닫기</button></div>
     <div id="shop-list"></div>
+  </div>
+</section>
+
+<section class="ov" id="ov-smith" hidden>
+  <div class="panel scroll">
+    <div class="tabs"><span id="shop-title-smith" style="color:var(--gold);font-size:16px">대장장이 그론 · 장비 강화</span><span id="smith-gold" style="font:12px var(--pixel);color:var(--gold);margin-left:8px"></span><button class="ghost-btn x" id="smith-close">닫기</button></div>
+    <div id="smith-list"></div>
+    <div id="smith-detail"></div>
   </div>
 </section>
 
@@ -282,7 +302,7 @@ h2 small { display: block; font: 16px var(--hangul); color: var(--muted); margin
   <div class="box">
     <h2>PAUSED<small>일시정지 · 자동 저장됨</small></h2>
     <button class="big-btn" id="btn-resume">계속하기</button>
-    <div class="row"><button class="ghost-btn" id="btn-mute">소리 끄기</button><button class="ghost-btn" id="btn-quit">타이틀로</button></div>
+    <div class="row"><button class="ghost-btn" id="btn-music">음악 끄기</button><button class="ghost-btn" id="btn-mute">효과음 끄기</button><button class="ghost-btn" id="btn-quit">타이틀로</button></div>
   </div>
 </section>
 

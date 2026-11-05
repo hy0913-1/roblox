@@ -28,34 +28,37 @@ node build.mjs                   # or build dist/frost-wizard.html, one file tha
 
 ## The game
 
-**Classes** (chosen at the start):
+**Classes and jobs** (MapleStory-style advancements: the 2nd job at Lv 10 branches into one of two paths, the 3rd
+job at Lv 20 continues it; each adds a skill, damage and stats; the job master in the village runs the trials):
 
-| class | basic | Lv 1 | Lv 3 | Lv 5 |
-|---|---|---|---|---|
-| Mage (마법사) | Frost bolt | Glacier Ring: freeze everything round you | Blink: teleport | Blizzard: a storm on a spot for 4 s |
-| Knight (전사) | Sword slash | Spin slash | Dash: charge through enemies | Ground slam: stuns |
-| Ranger (궁수) | Arrow | Piercing shot | Arrow rain on a spot | Fan of seven arrows |
+| class | skills (Lv 1/1/3/5) | 2nd job (Lv 10) → 3rd job (Lv 20) |
+|---|---|---|
+| Mage 마법사 | frost bolt, glacier ring, blink, blizzard | 빙결술사 (ice lances) → 서리의 군주 (absolute zero) · 화염술사 (fireball) → 불꽃의 대마법사 (meteor) |
+| Knight 전사 | slash, spin, dash, ground slam | 버서커 (rage) → 워로드 (earth cleave) · 나이트 (aegis) → 팔라딘 (judgment) |
+| Ranger 궁수 | arrow, piercing shot, arrow rain, fan | 헌터 (explosive arrow) → 보우마스터 (arrow storm) · 저격수 (snipe) → 신궁 (thunder arrows) |
+| Thief 도적 | throwing star, double stab, stealth, poison mist | 어쌔신 (star storm) → 나이트로드 (dark vortex) · 시프 (assault) → 섀도어 (eclipse) |
 
-All classes get the **airstrike** (a fighter jet drops a line of bombs) from the second main quest's reward.
-Skills cost MP; MP and HP refill slowly (HP only out of combat).
+All classes get the airstrike from the second main quest. Desktop keys: J/left mouse, Q E R, T G (job skills),
+F/right mouse (airstrike), 1 2 potions, Space talk, I bag, M map, Esc pause.
 
-**Places.** The village (safe; the elder, the merchant, the guard, a kid), the forest (monsters come back over
-time; chests; a lake), the Slime Cave and the Old Crypt (generated rooms and corridors, dark with torches,
-monsters per room, chests, a boss in the far room; a portal opens there once the boss is down). The crypt stays
-sealed until the second main quest is done.
+**World.** Village → forest (cave, crypt) → highlands (orc camp) → volcano, ice cave → the Demon King's tower.
+Dungeons are generated rooms and corridors with torches, lava, chests and a boss in the far room.
 
-**Quests.** Main: clear 8 slimes → defeat the King Slime → defeat the Lich (the ending). Side: bat wings for the
-merchant, skeleton archers for the guard, the kid's lost doll. NPCs show `!` for a new quest and `?` when you can
-report one.
+**Bosses.** King Slime (leaps, summons), Lich (shadow fans, skeletons, blinks), Orc Chief (charges, calls
+warriors), Fire Drake (fire breath, fireball rain, dives), Frost Giant (ice-spike lines, snowballs, golems),
+Bael the Demon King (three phases: shadow fans and demons, meteors, a black hole).
 
-**Items.** Weapons (per class), armour and trinkets in five rarities (common to legendary) with rolled stats;
-potions; quest items. Drops from monsters, chests (gold chests in boss rooms) and quest rewards. The merchant
-buys and sells. Dying sends you back to the village and costs 10% of your gold.
+**Story.** Seven main quests from the elder and the guard captain to the Demon King, two job trials, four side
+quests, and a bounty board with endless bounties.
 
-**Enemies.** Slimes, bats (fly over trees and water), skeleton archers (keep their distance, need line of sight),
-skeleton warriors (wind up and swing), the King Slime (leaps onto you, calls slimes) and the Lich (fans of shadow
-bolts, summons skeletons, blinks away; fiercer below half health). Walkers find their way round obstacles with a
-flow field over the tile grid.
+**Items.** Weapon, helmet, armour, boots, trinket; six tiers; five rarities with rolled prefixes (sharp, mighty,
+sturdy, vital, wise, swift, vampiric); named legendaries from bosses; the blacksmith enhances gear to +10 (failure
+costs only gold); potions, greater potions, an elixir of strength and a return scroll.
+
+**Events.** Day and night (more and stronger monsters at night), the blood moon (+50% XP), rain, golden slimes,
+the treasure goblin (hit it before it escapes), the wandering merchant with rare stock, and raids on the village.
+
+**Music and sound** are synthesised: a chiptune per area and a faster one for bosses and raids.
 
 ## The effects
 
@@ -76,7 +79,8 @@ Contact sheets are in `docs/`.
 | file | what's in it |
 |---|---|
 | `main.js` | boot, the frame loop, screens, interaction, screen fitting |
-| `game.js` | the rules: scenes and travel, stats, enemies and their AI, projectiles, loot, levels, quests, saving |
+| `game.js` | the rules: scenes and travel, jobs and stats, items, loot, levels, quests, bounties, events, day and night, saving |
+| `enemies.js` | monster behaviours and the six bosses |
 | `skills.js` | moving, aiming and every skill, the airstrike |
 | `render.js` | drawing: floor, effects, sorted sprites, darkness and torchlight, HUD, minimap |
 | `ui.js` | class choice, dialogue, bag/equipment/quests, shop, pause, death, ending, the live HUD text |

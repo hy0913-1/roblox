@@ -95,3 +95,77 @@ export const sfx = {
   talk: () => gate("talk", 0.05) && tone("square", 440 + Math.random() * 200, 440, 0.03, 0.03),
   over: () => gate("over", 1) && [392, 330, 262, 196].forEach((f, i) => tone("triangle", f, f * 0.97, 0.3, 0.12, i * 0.2)),
 };
+
+// ---- music: a small chiptune per place, composed from a chord progression, a bass line and a seeded melody ----
+const SONGS = {
+  town: { bpm: 96, root: 60, prog: [0, 5, 7, 5], minor: false, lead: "triangle", seed: 3 },
+  forest: { bpm: 108, root: 57, prog: [0, 3, 5, 7], minor: false, lead: "square", seed: 7 },
+  highlands: { bpm: 116, root: 55, prog: [0, 5, 3, 7], minor: false, lead: "square", seed: 11 },
+  cave: { bpm: 88, root: 52, prog: [0, 8, 5, 7], minor: true, lead: "triangle", seed: 5 },
+  crypt: { bpm: 80, root: 50, prog: [0, 1, 5, 7], minor: true, lead: "triangle", seed: 13 },
+  volcano: { bpm: 124, root: 52, prog: [0, 1, 0, 6], minor: true, lead: "sawtooth", seed: 17 },
+  icecave: { bpm: 84, root: 59, prog: [0, 8, 3, 7], minor: true, lead: "triangle", seed: 19 },
+  tower: { bpm: 132, root: 50, prog: [0, 1, 8, 7], minor: true, lead: "sawtooth", seed: 23 },
+  boss: { bpm: 150, root: 52, prog: [0, 1, 0, 8], minor: true, lead: "square", seed: 29 },
+};
+let musicOn = true, song = null, step = 0, nextT = 0, timer = null, musicGain = null;
+export const isMusicOn = () => musicOn;
+export function setMusicOn(on) {
+  musicOn = on;
+  if (musicGain) musicGain.gain.value = on ? 0.16 : 0;
+}
+export function playMusic(name) {
+  if (!ac || song === SONGS[name]) return;
+  song = SONGS[name];
+  step = 0;
+  nextT = ac.currentTime + 0.1;
+  if (!musicGain) {
+    musicGain = ac.createGain();
+    musicGain.gain.value = musicOn ? 0.16 : 0;
+    musicGain.connect(master);
+  }
+  if (!timer) timer = setInterval(schedule, 60);
+}
+const freq = (m) => 440 * Math.pow(2, (m - 69) / 12);
+function note(type, midi, t, dur, vol) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type;
+  o.frequency.value = freq(midi);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(musicGain);
+  o.start(t);
+  o.stop(t + dur + 0.02);
+}
+function schedule() {
+  if (!ac || !song || ac.state !== "running") return;
+  const s = song, beat = 60 / s.bpm / 2; // eighth notes
+  const scale = s.minor ? [0, 2, 3, 5, 7, 8, 10] : [0, 2, 4, 5, 7, 9, 11];
+  while (nextT < ac.currentTime + 0.25) {
+    const bar = Math.floor(step / 8) % s.prog.length, chordRoot = s.root + s.prog[bar], pos = step % 8;
+    if (pos % 2 === 0) note("triangle", chordRoot - 12 + (pos === 4 ? 7 : 0), nextT, beat * 1.8, 0.5);
+    const third = s.minor ? 3 : 4;
+    if (pos === 0 || pos === 3 || pos === 6) [0, third, 7].forEach((iv) => note("square", chordRoot + iv, nextT, beat * 0.9, 0.06));
+    // the melody: a repeatable walk over the scale, with rests
+    const h = Math.sin((step % 64) * 12.9898 + s.seed * 78.233) * 43758.5453, r = h - Math.floor(h);
+    if (r > 0.35) {
+      const deg = Math.floor(r * 9) % 7;
+      note(s.lead, s.root + 12 + scale[deg] + (r > 0.9 ? 12 : 0), nextT, beat * (r > 0.8 ? 1.8 : 0.9), s.lead === "sawtooth" ? 0.08 : 0.12);
+    }
+    if (s.bpm > 120 && pos % 2 === 1) noiseHat(nextT);
+    nextT += beat;
+    step++;
+  }
+}
+function noiseHat(t) {
+  const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+  src.buffer = noiseBuf;
+  f.type = "highpass";
+  f.frequency.value = 7000;
+  g.gain.setValueAtTime(0.08, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+  src.connect(f).connect(g).connect(musicGain);
+  src.start(t, Math.random() * 0.5);
+  src.stop(t + 0.06);
+}

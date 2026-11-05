@@ -3,11 +3,12 @@
 
 import { createFrame, clearFrame, composite, painterFor, hex } from "./vendor/pixelfx/src/core/index.js";
 import { W, H, TILE, ENEMIES, xpForLevel, SKILLS } from "./config.js";
-import { G, camera, npcMarker } from "./game.js";
+import { G, camera, npcMarker, darkness } from "./game.js";
 import { AIR, slotSkill } from "./skills.js";
 import { input } from "./input.js";
 import { SPRITES, drawTree, drawRock } from "./sprites.js";
-import { HEROES, NPC_ART, LICH_ART, HOUSES, WELL, FENCE, SIGN, GRAVES, PILLAR, CAVE_MOUTH, CRYPT_GATE, BONES, CHESTS, COIN, LOOT_BAG, ICONS } from "./art.js";
+import { HEROES, NPC_ART, LICH_ART, HOUSES, WELL, FENCE, SIGN, GRAVES, PILLAR, CAVE_MOUTH, CRYPT_GATE, BONES, CHESTS, COIN, LOOT_BAG, ICONS, PROPS, CAVE_MOUTHS, TOWER_GATE, ENEMY_ART, BOSS_ART } from "./art.js";
+import { CLASSES } from "./config.js";
 import { T } from "./world.js";
 
 let ctx, canvasEl, back, front, hud;
@@ -27,6 +28,32 @@ function ensureFrames() {
   imgs.clear();
   cvs.clear();
 }
+// Library effects are made for a character twice our size: those are drawn into a frame of their own at full size
+// and scaled down onto the screen, back layer before the sprites, front layer after.
+const scaledFrames = new Map();
+function scaledLayer(e, layer, cx, cy) {
+  const fx = e.fx, m = fx.meta, o = fx.options, rot = !!o.angle;
+  const ow = m.size[0], oh = m.size[1], side = rot ? Math.ceil(2 * Math.hypot(Math.max(m.origin[0], ow - m.origin[0]), Math.max(m.origin[1], oh - m.origin[1]))) : 0;
+  const w = rot ? side : ow, h = rot ? side : oh, ox = rot ? side / 2 : m.origin[0], oy = rot ? side / 2 : m.origin[1];
+  const key = w + "x" + h;
+  let f = scaledFrames.get(key);
+  if (!f) {
+    f = { frame: createFrame(w, h), img: new ImageData(w, h), cv: Object.assign(document.createElement("canvas"), { width: w, height: h }) };
+    scaledFrames.set(key, f);
+  }
+  clearFrame(f.frame);
+  const sx = o.x, sy = o.y;
+  o.x = ox;
+  o.y = oy;
+  fx.draw(f.frame, layer);
+  o.x = sx;
+  o.y = sy;
+  composite(f.frame, f.img.data, null);
+  f.cv.getContext("2d").putImageData(f.img, 0, 0);
+  const k = e.scale;
+  ctx.drawImage(f.cv, Math.round(sx - cx - ox * k), Math.round(sy - cy - oy * k), Math.round(w * k), Math.round(h * k));
+}
+
 function blit(frame) {
   if (!imgs.has(frame)) {
     imgs.set(frame, new ImageData(W, H));
@@ -61,10 +88,12 @@ export function draw() {
     f.oy = cy;
   }
   for (const e of G.fxs) {
+    if (e.scale !== 1) continue;
     e.fx.draw(back, "back");
     e.fx.draw(front, "front");
   }
   blit(back);
+  for (const e of G.fxs) if (e.scale !== 1) scaledLayer(e, "back", cx, cy);
 
   // flat things on the floor, shadows of things in the air, aim lines
   for (const o of s.objects)
@@ -88,6 +117,7 @@ export function draw() {
   for (const o of s.objects) if (!o.flat && vis(o.x, o.y)) items.push({ y: o.y, d: () => drawObject(o, cx, cy) });
   for (const c of s.chests) if (vis(c.x, c.y)) items.push({ y: c.y, d: () => drawChest(c, cx, cy) });
   for (const n of s.npcs) items.push({ y: n.y, d: () => drawNpc(n, cx, cy) });
+  if (G.wanderer?.scene === s.id) items.push({ y: G.wanderer.y, d: () => drawNpc(G.wanderer, cx, cy) });
   for (const k of G.pickups) items.push({ y: k.y, d: () => drawPickup(k, cx, cy) });
   for (const e of G.enemies) if (vis(e.x, e.y)) items.push({ y: e.y, d: () => drawEnemy(e, cx, cy) });
   for (const pr of G.projectiles) if (pr.owner === "enemy" && pr.kind === "arrow") items.push({ y: pr.y + 9, d: () => drawArrow(pr, cx, cy) });
@@ -115,17 +145,39 @@ export function draw() {
     ctx.fillStyle = "#ffe27a";
     ctx.fillRect(x, y - 2 - (f === 2 ? 1 : 0), 1, 2);
   }
-  if (s.dark) darkness(cx, cy);
+  if (s.dark) dungeonDark(cx, cy);
+  else sky(cx, cy);
   const g = painterFor(front).place(0, 0, false, 0);
-  if (s.dark) {
-    for (const t of s.torches) g.glow(t.x, t.y - 2, 38, hex("#f2701f"), 0.3 + 0.06 * Math.sin(G.time * 13 + t.x));
-    g.glow(G.player.x, G.player.y - 10, 30, hex("#ffc46a"), 0.12);
+  if (s.dark || darkness() > 0.2) {
+    for (const t of s.torches) g.glow(t.x, t.y - 2, 38, hex(t.color ?? "#f2701f"), 0.3 + 0.06 * Math.sin(G.time * 13 + t.x));
+    g.glow(G.player.x, G.player.y - 10, 30, hex("#ffc46a"), s.dark ? 0.12 : 0.1);
+    if (s.id === "town") for (const o of s.objects) if (o.kind === "house") g.glow(o.x, o.y - 16, 30, hex("#ffc46a"), 0.22 * Math.min(1, darkness() * 2));
   }
   blit(front);
+  for (const e of G.fxs) if (e.scale !== 1) scaledLayer(e, "front", cx, cy);
+  if (G.rain && !s.dark) rain();
   if (G.mode !== "title" && G.mode !== "class") drawHud(cx, cy);
 }
 
-function darkness(cx, cy) {
+// day and night outdoors: a blue dusk, a red tint under the blood moon
+function sky() {
+  const d = darkness();
+  if (d > 0) {
+    ctx.fillStyle = G.bloodMoon ? `rgba(60,0,10,${d * 0.95})` : `rgba(8,12,40,${d})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+function rain() {
+  ctx.fillStyle = "rgba(170,200,255,0.55)";
+  for (let i = 0; i < 70; i++) {
+    const x = (i * 97 + G.time * 140) % (W + 40) - 20, y = (i * 61 + G.time * 320 + i * i) % (H + 20) - 10;
+    ctx.fillRect(Math.round(x), Math.round(y), 1, 4);
+    ctx.fillRect(Math.round(x) - 1, Math.round(y) + 4, 1, 1);
+  }
+  ctx.fillStyle = "rgba(20,30,60,0.12)";
+  ctx.fillRect(0, 0, W, H);
+}
+function dungeonDark(cx, cy) {
   const p = G.player, x = p.x - cx, y = p.y - 10 - cy;
   const gr = ctx.createRadialGradient(x, y, 40, x, y, Math.max(W, H) * 0.75);
   gr.addColorStop(0, "rgba(4,3,10,0)");
@@ -173,8 +225,12 @@ function drawObject(o, cx, cy) {
     case "sign": return img(SIGN, x - 8, y - 18);
     case "grave": return img(GRAVES[o.v], x - 7, y - 15);
     case "pillar": return img(PILLAR, x - 7, y - 29);
-    case "cave": return img(CAVE_MOUTH, x - 20, y - 28);
-    case "gate": return img(CRYPT_GATE[G.quests?.q2?.state === "complete" ? 1 : 0], x - 22, y - 38);
+    case "cave": return img(o.v ? CAVE_MOUTHS[o.v] : CAVE_MOUTH, x - 20, y - 28);
+    case "gate": return o.v === "tower" ? img(TOWER_GATE[G.quests?.q7 ? 1 : 0], x - 22, y - 38) : img(CRYPT_GATE[G.quests?.q2?.state === "complete" ? 1 : 0], x - 22, y - 38);
+    case "anvil": return img(PROPS.anvil, x - 9, y - 13);
+    case "stake": return img(PROPS.stake, x - 4, y - 19);
+    case "tent": return img(PROPS.tent, x - 26, y - 38);
+    case "crystal": return img(PROPS.crystal, x - 5, y - 15);
   }
 }
 function drawChest(c, cx, cy) {
@@ -187,6 +243,7 @@ function drawChest(c, cx, cy) {
 }
 function drawNpc(n, cx, cy) {
   const frames = NPC_ART[n.id], im = frames[Math.floor(G.time * 1.5 + n.x) % 2];
+  if (n.object) return img(im, n.x - cx - (im.width >> 1), n.y - cy - im.height - 4);
   const x = n.x - cx, y = n.y - cy;
   shadow(x, y, 12);
   img(im, x - (im.width >> 1), y - im.height + 1);
@@ -258,6 +315,25 @@ function drawEnemy(e, cx, cy) {
     im = pick("king", e, frame);
     shadow(x, y, 26 * (1 - Math.min(0.6, e.z / 100)));
     img(im, x - (im.width >> 1) + shiver, y - e.z - im.height + 1);
+  } else if (ENEMY_ART[e.type] || BOSS_ART[e.type]) {
+    const set = ENEMY_ART[e.type] ?? BOSS_ART[e.type], fr = e.state === "swing" || e.state === "slam" || e.state === "windup" || e.state === "stomp" ? "b" : Math.floor(e.anim * (def.speed > 45 ? 8 : 5)) % 2 ? "b" : "a";
+    im = e.hit > 0 ? set[fr + "Flash"] : e.frozen > 0 ? set[fr + "Ice"] : set[fr];
+    const flip = G.player.x < e.x && (e.type === "wolf" || e.type === "drake");
+    shadow(x, y, Math.max(10, im.width * 0.7) * (1 - Math.min(0.5, e.z / 120)));
+    const bx = x - (im.width >> 1) + shiver, by = Math.round(y - e.z - im.height + 1);
+    if (flip) {
+      ctx.save();
+      ctx.translate(x * 2, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(im, bx, by);
+      ctx.restore();
+    } else img(im, bx, by);
+    // a tell before a heavy blow: a red glint over the head
+    if ((e.state === "swing" || e.state === "slam" || e.state === "windup" || e.state === "stomp") && Math.floor(G.time * 20) % 2) {
+      ctx.fillStyle = "#ff3a3a";
+      ctx.fillRect(x - 1, by - 5, 2, 3);
+      ctx.fillRect(x - 1, by - 1, 2, 1);
+    }
   } else if (e.type === "lich") {
     im = e.hit > 0 ? LICH_ART.flash : e.frozen > 0 ? LICH_ART.ice : LICH_ART.base;
     shadow(x, y, 14);
@@ -286,7 +362,7 @@ function drawArrow(a, cx, cy) {
 
 // ---- the hero ------------------------------------------------------------------------------------
 function heroSprite(face, stepFrame) {
-  const set = G.cls === "mage" ? SPRITES.wizard : HEROES[G.cls];
+  const set = G.cls === "mage" ? SPRITES.wizard : HEROES[G.cls] ?? SPRITES.wizard;
   return set[face][stepFrame];
 }
 function drawHero(x, y, face, step, alpha = 1) {
@@ -307,6 +383,17 @@ function drawPlayer(cx, cy) {
   if (p.hurt > 0 && !p.dash && Math.floor(G.time * 20) % 2 === 0) return;
   if (G.mode === "dead") ctx.globalAlpha = 0.4;
   shadow(x, y, 12);
+  // advanced jobs wear their colour: a ring of light at the feet that grows with rank
+  if (G.job?.rank >= 2) {
+    const tintC = CLASSES[G.cls].branches[G.job.branch].tint, r = G.job.rank === 3 ? 10 : 8;
+    ctx.fillStyle = tintC;
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2 + G.time * (G.job.rank === 3 ? 2 : 1);
+      if (i % 2 === 0) ctx.fillRect(Math.round(x + Math.cos(a) * r), Math.round(y + Math.sin(a) * r * 0.45), 1, 1);
+    }
+    if (G.job.rank === 3 && Math.floor(G.time * 6) % 3 === 0) ctx.fillRect(x + Math.round(Math.sin(G.time * 3) * 6), y - 20 - Math.round((G.time * 20) % 10), 1, 1);
+  }
+  if (p.stealth > 0) ctx.globalAlpha = 0.35;
   const step = p.moving && Math.floor(p.walk * 8) % 2 === 1, bob = p.moving && !step ? 1 : 0;
   const behind = p.face === "up", wx = p.face === "left" ? x - 8 : p.face === "right" ? x + 7 : x + 8, sy = y - 16 - bob;
   const weapon = () => drawWeapon(wx, sy, p);
@@ -334,6 +421,13 @@ function drawWeapon(wx, sy, p) {
     else ctx.fillRect(wx, sy + 1, 1, 9);
     ctx.fillStyle = "#f2c14e";
     ctx.fillRect(wx - 1, sy + 9, 3, 1);
+  } else if (G.cls === "thief") {
+    const dir = p.face === "left" ? -1 : 1, stab = (p.cds.flurry ?? 0) > 2.7 || p.dash;
+    ctx.fillStyle = "#3a2a1a";
+    ctx.fillRect(wx, sy + 10, 1, 2);
+    ctx.fillStyle = "#e8ecf4";
+    if (stab) ctx.fillRect(wx + (dir > 0 ? 1 : -6), sy + 10, 6, 1);
+    else ctx.fillRect(wx, sy + 6, 1, 4);
   } else {
     const dir = p.face === "left" ? -1 : 1, bx = wx + dir * 1, by = sy + 8, drawn = (p.cds.arrow ?? 0) > 0.2 || (p.cds.pierce ?? 0) > 3.8;
     ctx.fillStyle = "#6a4426";
@@ -369,6 +463,8 @@ function drawHud(cx, cy) {
   bar(8, 17, 84, 4, p.mp / s.maxMp, "#10244a", "#3f8cff");
   bar(8, 24, 84, 2, p.xp / xpForLevel(p.lv), "#2a2410", "#ffd84a");
   img(COIN, 8, 28);
+  const buffs = [...(G.buffs ?? []).map((b) => [b.t / b.max, { rage: "#ff5a4a", aegis: "#ffe066", elixir: "#ffb04a" }[b.id] ?? "#9bdcff"]), ...(p.stealth > 0 ? [[p.stealth / 3.5, "#c684ff"]] : [])];
+  buffs.forEach(([k, c], i) => bar(4 + i * 24, 37, 22, 2, k, "rgba(10,8,18,0.7)", c));
   if (G.boss?.aggro) {
     const bw = Math.min(150, W - 30), by = 44;
     ctx.fillStyle = "rgba(10,8,18,0.75)";
@@ -384,8 +480,8 @@ function drawHud(cx, cy) {
   g.text(`${Math.ceil(p.hp)}/${s.maxHp}`, 10, 9, C.white, o);
   g.text(`LV ${p.lv}`, 92, 28, C.gold, { ...o, align: "right" });
   g.text(`${p.gold}`, 15, 28, C.gold, o);
-  for (const n of G.scene.npcs) {
-    const m = npcMarker(n.id);
+  for (const n of [...G.scene.npcs, ...(G.wanderer?.scene === G.scene.id ? [G.wanderer] : [])]) {
+    const m = n.id === "wanderer" ? "$" : npcMarker(n.id);
     if (m) g.text(m, Math.round(n.x - cx), Math.round(n.y - cy - 30 + Math.sin(G.time * 4) * 1.5), m === "?" ? C.gold : hex("#ffe066"), { font: "big", align: "center", outline: C.dark });
   }
   for (const t of G.texts) {
@@ -437,6 +533,7 @@ export function drawMinimap(el) {
   for (const pt of [...s.portals, ...(s.activeExit ? [s.activeExit] : [])]) dot(pt.x, pt.y, "#c684ff", 3);
   for (const c of s.chests) if (!G.opened.includes(c.id)) dot(c.x, c.y, "#ffd84a");
   for (const n of s.npcs) dot(n.x, n.y, npcMarker(n.id) ? "#ffe066" : "#9be07a", 3);
+  if (G.wanderer?.scene === s.id) dot(G.wanderer.x, G.wanderer.y, "#ffe066", 4);
   for (const e of G.enemies) if (ENEMIES[e.type].boss) dot(e.x, e.y, "#ff4a5a", 4);
   if (Math.floor(G.time * 3) % 2) dot(G.player.x, G.player.y, "#ffffff", 3);
   else dot(G.player.x, G.player.y, "#9bdcff", 3);

@@ -6,13 +6,14 @@ import { getScene } from "./world.js";
 import { initRender, draw, drawMinimap } from "./render.js";
 import { input, initInput, endFrame, releaseAll } from "./input.js";
 import { show, screen, menuOpen, showTitle, talkTo, readSign, openBag, initMenus, showPause, showEnding, updateHud } from "./ui.js";
-import { unlockAudio, setMuted, isMuted, sfx } from "./audio.js";
+import { unlockAudio, setMuted, isMuted, sfx, playMusic, setMusicOn, isMusicOn } from "./audio.js";
 
 const canvas = document.getElementById("game");
 initRender(canvas);
 initInput({ canvas, onFirstInput: unlockAudio, menuOpen });
 try {
   setMuted(localStorage.getItem("frostwizard.muted") === "1");
+  setMusicOn(localStorage.getItem("frostwizard.music") !== "0");
 } catch {}
 
 // the title screen shows the village behind it
@@ -38,7 +39,7 @@ function pause() {
   if (screen !== "play" || G.mode !== "play") return;
   saveGame();
   releaseAll();
-  showPause(isMuted());
+  showPause();
 }
 function toggleMute() {
   setMuted(!isMuted());
@@ -55,6 +56,13 @@ initMenus({
   },
   onMute: toggleMute,
   isMuted,
+  onMusic: () => {
+    setMusicOn(!isMusicOn());
+    try {
+      localStorage.setItem("frostwizard.music", isMusicOn() ? "1" : "0");
+    } catch {}
+  },
+  musicOn: isMusicOn,
   onContinueAfterEnding: () => show(null),
 });
 
@@ -81,7 +89,7 @@ fit();
 function menuKeys() {
   if (input.tap("Escape")) {
     if (screen === "play") pause();
-    else if (["bag", "shop", "pause", "dialog"].includes(screen)) (saveGame(), show(null));
+    else if (["bag", "shop", "smith", "pause", "dialog"].includes(screen)) (saveGame(), show(null));
   }
   if (screen === "play" && input.pause) pause();
   if (screen === "play" && input.bag) openBag();
@@ -107,6 +115,7 @@ function frame(now) {
       else if (target.kind === "sign") readSign(target.ref);
     }
     updateHud(target);
+    playMusic(G.boss?.aggro || G.raid ? "boss" : G.scene.id);
     if (G.mode === "dead") {
       releaseAll();
       show("dead");

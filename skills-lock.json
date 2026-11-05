@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "skills": {
+    "spritecook-animate-assets": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-animate-assets/SKILL.md",
+      "computedHash": "3e5b1aecc425e6203c773d088716cfe13f750c3abe9ff5feb6e4014ceda0f308"
+    },
+    "spritecook-build-ui-kits": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-build-ui-kits/SKILL.md",
+      "computedHash": "7db4dd57cb2dd334efc5352c83cdfb9120cc6bc4f463208de65e9897b0ab0ba5"
+    },
+    "spritecook-generate-sprites": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-generate-sprites/SKILL.md",
+      "computedHash": "23fdec80ef96867d066a51525ddbf3ffe67018d90435dff3a5b28819bf7f8277"
+    },
+    "spritecook-generate-tilesets": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-generate-tilesets/SKILL.md",
+      "computedHash": "7574567bac7240b4d1396881a25e0a45c00de1c918ae231da1163c6dec1b043d"
+    },
+    "spritecook-polish-sprites": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-polish-sprites/SKILL.md",
+      "computedHash": "d86bdf05d043db02cf977e1bbfc0cc7c07fc67b8bff9d5d9831abb0b9858676a"
+    },
+    "spritecook-upload-assets": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-upload-assets/SKILL.md",
+      "computedHash": "6c00ca0aa32f6f3007f97dd94c3df9722a1c39475985845b837791e71d751200"
+    },
+    "spritecook-use-assets-in-godot": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-use-assets-in-godot/SKILL.md",
+      "computedHash": "4b1dfb31a5eebcaa475bfb5dacefdae2d4ffdcfda9d99b2bbfe7eac8a0e589db"
+    },
+    "spritecook-use-dual-grid-tilesets": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-use-dual-grid-tilesets/SKILL.md",
+      "computedHash": "3b57d6428a4993e5cc103fdb1ab5ab0c818010619397b9871187bfd316ad0a51"
+    },
+    "spritecook-use-presets": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-use-presets/SKILL.md",
+      "computedHash": "d5f887d80b897921460b349aa7964e4b6eeb71cf5fb0df0728cbc37c4ae7dde6"
+    },
+    "spritecook-workflow-essentials": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-workflow-essentials/SKILL.md",
+      "computedHash": "aaf3fb9488d81af6ffcb58fbceaf629685cad4029f5e33bd9f9e0499cfec13d7"
+    }
+  }
+}

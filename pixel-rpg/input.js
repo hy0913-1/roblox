@@ -4,7 +4,7 @@
 // Touch: a floating stick on the left; on the right a button per slot. Tap a button to cast with auto-aim, or press
 // and drag it to aim by hand (direction skills follow the drag, ground skills show their landing spot); letting
 // go back on the button cancels. Desktop: WASD, mouse to aim, left button / J basic, Q E R skills, F airstrike,
-// 1 2 potions, Space talk/open, I bag, M map, Esc pause.
+// T G job skills, 1 2 potions, Space talk/open, I bag, M map, Esc pause.
 
 import { W, H } from "./config.js";
 
@@ -15,7 +15,7 @@ export const input = {
   tapped: new Set(),
   stick: { x: 0, y: 0 },
   mouse: { over: false, x: 0, y: 0, down: false },
-  slots: [slot(), slot(), slot(), slot(), slot()],
+  slots: Array.from({ length: 7 }, slot),
   potion: { hp: false, mp: false },
   interact: false,
   bag: false,
@@ -41,7 +41,7 @@ export function releaseAll() {
   for (const s of input.slots) Object.assign(s, slot());
 }
 
-const GAME_KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "KeyJ", "KeyQ", "KeyE", "KeyR", "KeyF", "Space", "Enter", "Escape", "KeyP", "KeyM", "KeyI", "Tab", "Digit1", "Digit2", "Digit3"]);
+const GAME_KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "KeyJ", "KeyQ", "KeyE", "KeyR", "KeyT", "KeyG", "KeyF", "Space", "Enter", "Escape", "KeyP", "KeyM", "KeyI", "Tab", "Digit1", "Digit2", "Digit3"]);
 const $ = (id) => document.getElementById(id);
 
 export function initInput({ canvas, onFirstInput, menuOpen }) {
@@ -53,7 +53,7 @@ export function initInput({ canvas, onFirstInput, menuOpen }) {
     input.keys.add(e.code);
     if (menuOpen()) return;
     if (e.code === "KeyJ") input.slots[0].held = true;
-    const k = { KeyQ: 1, KeyE: 2, KeyR: 3, KeyF: 4 }[e.code];
+    const k = { KeyQ: 1, KeyE: 2, KeyR: 3, KeyT: 4, KeyG: 5, KeyF: 6 }[e.code];
     if (k) input.slots[k].keyTap = true;
     if (e.code === "Digit1") input.potion.hp = true;
     if (e.code === "Digit2") input.potion.mp = true;
@@ -85,7 +85,7 @@ export function initInput({ canvas, onFirstInput, menuOpen }) {
     input.mouse.over = true;
     onFirstInput();
     if (e.button === 0) input.mouse.down = true;
-    if (e.button === 2) input.slots[4].keyTap = true;
+    if (e.button === 2) input.slots[6].keyTap = true;
   });
   addEventListener("mouseup", (e) => e.button === 0 && (input.mouse.down = false));
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -139,7 +139,7 @@ function initTouch() {
   zone.addEventListener("pointermove", (e) => e.pointerId === id && move(e));
   for (const t of ["pointerup", "pointercancel", "lostpointercapture"]) zone.addEventListener(t, end);
 
-  for (let i = 0; i < 5; i++) aimButton($("btn-s" + i), input.slots[i], i === 0);
+  for (let i = 0; i < 7; i++) aimButton($("btn-s" + i), input.slots[i], i === 0);
   $("btn-hp").addEventListener("pointerdown", () => (input.potion.hp = true));
   $("btn-mp").addEventListener("pointerdown", () => (input.potion.mp = true));
   $("btn-act").addEventListener("pointerdown", () => (input.interact = true));
