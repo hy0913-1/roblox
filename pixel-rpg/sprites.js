@@ -91,6 +91,70 @@ const SLIME_FLAT = [
 ];
 const slime = { tall: makeSprite(SLIME_TALL, SLIME_PAL), flat: makeSprite(SLIME_FLAT, SLIME_PAL) };
 
+// nearest-neighbour upscale of a sprite canvas
+function upscale(src, k) {
+  const cv = Object.assign(document.createElement("canvas"), { width: src.width * k, height: src.height * k });
+  const g = cv.getContext("2d");
+  g.imageSmoothingEnabled = false;
+  g.drawImage(src, 0, 0, cv.width, cv.height);
+  return cv;
+}
+
+const BAT_PAL = { k: "#1a0f24", p: "#6b4a9a", P: "#4a2f72", e: "#ff4a5a", w: "#ffffff" };
+const BAT_UP = [
+  "k...........k",
+  "kPk.k...k.kPk",
+  "kPPkpkkkpkPPk",
+  ".kPPpepepPPk.",
+  "..kPpppppPk..",
+  "...kkpwpkk...",
+  ".....kkk.....",
+];
+const BAT_DOWN = [
+  ".....k.k.....",
+  "....kpkpk....",
+  "....kpepek...",
+  "kkkkkpppkkkkk",
+  "kPPPPpwpPPPPk",
+  ".kPPkkkkkPPk.",
+  "..kk.....kk..",
+];
+
+const BONE_PAL = { k: "#1c1a22", w: "#e4dcc8", W: "#b8ad96", e: "#ff5a3a" };
+const ARCHER = [
+  "....kkkk....",
+  "...kwwwwk...",
+  "..kwwwwwwk..",
+  "..kwekkewk..",
+  "..kwwwwwWk..",
+  "...kwkwkk...",
+  "....kwwk....",
+  "..kkwwwwkk..",
+  ".kwkwkkwkwk.",
+  ".kWkwwwwkWk.",
+  "..kkwkkwkk..",
+  "....kwWk....",
+  "...kwkkwk...",
+  "...kwk.kwk..",
+  "..kwk...kwk.",
+  "..kkk...kkk.",
+];
+const ARCHER_STEP = [...ARCHER.slice(0, 13), "...kwkkwk...", "...kwkkwk...", "...kkk.kkk.."];
+
+const CROWN = makeSprite(
+  ["..y...y...y..", ".kyk.kyk.kyk.", ".kyykyyykyyk.", ".kyryyyyyyryk", ".kyyyyyyyyyyk", "..kkkkkkkkkk."],
+  { k: "#3a2408", y: "#ffd84a", r: "#e0364a" }
+);
+function king(rows) {
+  const big = upscale(makeSprite(rows, SLIME_PAL), 2);
+  const cv = Object.assign(document.createElement("canvas"), { width: big.width, height: big.height + 5 });
+  const g = cv.getContext("2d");
+  g.drawImage(big, 0, 5);
+  g.drawImage(CROWN, Math.round(cv.width / 2 - CROWN.width / 2), 0);
+  return cv;
+}
+const kingTall = king(SLIME_TALL), kingFlat = king(SLIME_FLAT);
+
 export const SPRITES = {
   wizard: {
     down: [makeSprite(WIZ_FRONT, WIZ_PAL), makeSprite(WIZ_STEP, WIZ_PAL)],
@@ -101,6 +165,18 @@ export const SPRITES = {
   slime,
   slimeFlash: { tall: tint(slime.tall, "#ffffff", 0.9), flat: tint(slime.flat, "#ffffff", 0.9) },
   slimeIce: { tall: tint(slime.tall, "#9bdcff", 0.7), flat: tint(slime.flat, "#9bdcff", 0.7) },
+  bat: { up: makeSprite(BAT_UP, BAT_PAL), down: makeSprite(BAT_DOWN, BAT_PAL) },
+  batFlash: { up: tint(makeSprite(BAT_UP, BAT_PAL), "#ffffff", 0.9), down: tint(makeSprite(BAT_DOWN, BAT_PAL), "#ffffff", 0.9) },
+  batIce: { up: tint(makeSprite(BAT_UP, BAT_PAL), "#9bdcff", 0.7), down: tint(makeSprite(BAT_DOWN, BAT_PAL), "#9bdcff", 0.7) },
+  archer: { tall: makeSprite(ARCHER, BONE_PAL), flat: makeSprite(ARCHER_STEP, BONE_PAL) },
+  archerFlash: { tall: tint(makeSprite(ARCHER, BONE_PAL), "#ffffff", 0.9), flat: tint(makeSprite(ARCHER_STEP, BONE_PAL), "#ffffff", 0.9) },
+  archerIce: { tall: tint(makeSprite(ARCHER, BONE_PAL), "#9bdcff", 0.65), flat: tint(makeSprite(ARCHER_STEP, BONE_PAL), "#9bdcff", 0.65) },
+  king: { tall: kingTall, flat: kingFlat },
+  kingFlash: { tall: tint(kingTall, "#ffffff", 0.85), flat: tint(kingFlat, "#ffffff", 0.85) },
+  kingIce: { tall: tint(kingTall, "#9bdcff", 0.6), flat: tint(kingFlat, "#9bdcff", 0.6) },
+  gem: makeSprite(["..k..", ".kCk.", "kCcck", "kccbk", ".kbk.", "..k.."], { k: "#0c1a3a", C: "#ffffff", c: "#7fe0ff", b: "#3a8bd8" }),
+  bigGem: makeSprite(["...k...", "..kCk..", ".kCcck.", "kCcccbk", ".kccbk.", "..kbk..", "...k..."], { k: "#2a0c3a", C: "#ffffff", c: "#e08aff", b: "#9a48ec" }),
+  bomb: makeSprite([".kkk.", "kgGgk", "kgGgk", "kgggk", "kgggk", "kgggk", ".kgk.", "k.k.k"], { k: "#101114", g: "#4a4f5a", G: "#8a90a0" }),
   heart: makeSprite(
     [".kk..kk.", "kRRkkRRk", "kRWRRRRk", "kRRRRRRk", ".kRRRRk.", "..kRRk..", "...kk..."],
     { k: "#3a0a14", R: "#e0364a", W: "#ffd0d4" }

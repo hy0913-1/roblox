@@ -7,50 +7,175 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0b0a10">
 <title>Frost Wizard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Silkscreen:wght@400;700&display=swap">
 <style>
-  * { -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; height: 100%; background: #0b0a10; overflow: hidden; overscroll-behavior: none; }
-  body { display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
-  canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #000; touch-action: none; }
-  #help { position: fixed; left: 0; right: 0; bottom: 6px; text-align: center; color: #8f8aa8; font: 12px/1.4 monospace; pointer-events: none; }
-  body.touch #help { display: none; }
+/* One dark look, the colours of a frozen night: the game owns the whole screen. */
+:root {
+  color-scheme: dark;
+  --night: #0b0a10;
+  --panel: #121729;
+  --panel-edge: #2a3658;
+  --ice: #9bdcff;
+  --frost: #3a8bd8;
+  --ember: #ffb04a;
+  --text: #eaf2ff;
+  --muted: #8f96b8;
+  --pixel: "Silkscreen", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --hangul: "Do Hyeon", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--night); color: var(--text); overflow: hidden; overscroll-behavior: none; }
+body { display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; font-family: var(--hangul); }
+canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #000; touch-action: none; display: block; }
+body.playing:not(.touch) canvas { cursor: none; }
+button { font: inherit; color: inherit; }
+button:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
 
-  /* portrait phone: the game sits at the top, the thumbs have the space below */
-  body.touch.portrait { align-items: flex-start; padding-top: max(10px, env(safe-area-inset-top)); box-sizing: border-box; }
-  #rotate { display: none; position: fixed; left: 0; right: 0; top: 46%; text-align: center; color: #6f6a88; font: 12px/1.5 monospace; pointer-events: none; }
-  body.touch.portrait #rotate { display: block; }
+#help { position: fixed; left: 0; right: 0; bottom: 6px; text-align: center; color: var(--muted); font: 12px/1.4 var(--hangul); pointer-events: none; }
+body.touch #help, body:not(.playing) #help { display: none; }
 
-  /* touch controls: hidden unless the device has a touch screen */
-  #ui { display: none; }
-  body.touch #ui { display: block; }
-  #stickzone { position: fixed; left: 0; top: 0; bottom: 0; width: 50%; touch-action: none; z-index: 2; }
-  #stick { position: fixed; left: calc(86px + env(safe-area-inset-left)); top: calc(100% - 96px - env(safe-area-inset-bottom)); width: 92px; height: 92px; margin: -46px 0 0 -46px; border-radius: 50%;
-    border: 2px solid rgba(155,220,255,.35); background: rgba(20,30,60,.22); pointer-events: none; z-index: 3; opacity: .55; transition: opacity .12s; }
-  #stick.on { opacity: 1; border-color: rgba(155,220,255,.8); background: rgba(20,30,60,.4); }
-  #knob { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: rgba(155,220,255,.55); border: 2px solid rgba(220,245,255,.8); }
-  .btn { position: fixed; z-index: 3; border-radius: 50%; border: 2px solid rgba(220,245,255,.75); color: #eaf8ff; font: bold 13px/1 monospace; display: flex; align-items: center; justify-content: center;
-    touch-action: none; padding: 0; outline: none; text-shadow: 0 1px 0 #0b0a10; }
-  #btn-bolt { right: calc(22px + env(safe-area-inset-right)); bottom: calc(26px + env(safe-area-inset-bottom)); width: 86px; height: 86px; background: rgba(58,139,216,.5); }
-  #btn-bolt.down { background: rgba(155,220,255,.75); transform: scale(.94); }
-  #btn-ult { right: calc(112px + env(safe-area-inset-right)); bottom: calc(104px + env(safe-area-inset-bottom)); width: 68px; height: 68px;
-    background: conic-gradient(rgba(155,220,255,.9) var(--p, 360deg), rgba(20,30,60,.65) 0); border-color: rgba(155,220,255,.6); }
-  #btn-ult::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgba(12,18,40,.88); }
-  #btn-ult span { position: relative; }
-  #btn-ult.ready { border-color: #ffffff; box-shadow: 0 0 14px rgba(155,220,255,.9); }
-  #btn-ult.ready::before { background: rgba(58,139,216,.85); }
-  #btn-ult.down { transform: scale(.94); }
+/* top-right: pause */
+#btn-pause { position: fixed; top: calc(8px + env(safe-area-inset-top)); right: calc(8px + env(safe-area-inset-right)); z-index: 6; width: 40px; height: 40px; border-radius: 10px;
+  border: 2px solid var(--panel-edge); background: rgba(18,23,41,.75); display: none; align-items: center; justify-content: center; gap: 4px; padding: 0; }
+#btn-pause i { width: 4px; height: 14px; background: var(--text); display: block; }
+body.playing #btn-pause { display: flex; }
+
+/* ---- menus ---- */
+.ov { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: rgba(8,8,16,.72); touch-action: auto; overflow-y: auto; }
+.ov[hidden] { display: none !important; }
+.box { width: min(560px, 100%); display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.logo { font: 700 clamp(30px, 7vw, 52px)/1 var(--pixel); letter-spacing: .04em; color: var(--ice); text-shadow: 0 3px 0 #1f4f94, 0 6px 0 #0c1430; margin: 0; }
+.logo b { color: var(--ember); font-weight: 700; text-shadow: 0 3px 0 #a8301a, 0 6px 0 #3d1012; }
+.sub { font-size: clamp(16px, 3.6vw, 20px); color: var(--muted); margin: 0; }
+.big-btn { font: 22px/1 var(--hangul); padding: 14px 34px; border-radius: 12px; border: 2px solid #dff4ff; background: var(--frost); color: #fff; box-shadow: 0 4px 0 #1f4f94; cursor: pointer; }
+.big-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #1f4f94; }
+.ghost-btn { font: 18px/1 var(--hangul); padding: 11px 22px; border-radius: 10px; border: 2px solid var(--panel-edge); background: var(--panel); cursor: pointer; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.controls { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; text-align: left; font-size: 16px; background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 12px; padding: 12px 16px; max-width: 440px; }
+.controls dt { font: 12px/1.9 var(--pixel); color: var(--ice); white-space: nowrap; }
+.controls dd { margin: 0; color: var(--text); line-height: 1.5; }
+.controls[hidden] { display: none; }
+.best { font: 14px var(--hangul); color: var(--ember); margin: 0; }
+
+h2 { font: 700 30px/1 var(--pixel); color: var(--ice); margin: 0; letter-spacing: .04em; }
+h2 small { display: block; font: 18px var(--hangul); color: var(--muted); margin-top: 8px; letter-spacing: 0; }
+#level-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; }
+@media (max-width: 520px) and (orientation: portrait) { #level-cards { grid-template-columns: 1fr; } }
+.card { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 14px 12px 12px; border-radius: 12px; background: var(--panel); border: 2px solid var(--panel-edge); cursor: pointer; min-width: 0; }
+.card:hover, .card:focus-visible { border-color: var(--tag); }
+.card:active { transform: scale(.98); }
+.chip { font: 10px/1 var(--pixel); color: var(--night); background: var(--tag); padding: 3px 6px; border-radius: 4px; }
+.card-name { font-size: 20px; color: var(--text); }
+.card-desc { font-size: 15px; color: var(--muted); line-height: 1.35; }
+.pips { font-size: 9px; letter-spacing: 2px; color: var(--tag); }
+.pips i { font-style: normal; color: #2a3350; }
+.card kbd { position: absolute; top: 10px; right: 10px; font: 11px var(--pixel); color: var(--muted); }
+body.touch .card kbd { display: none; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.stat { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 10px; padding: 10px 6px; }
+.stat b { display: block; font: 700 22px/1.1 var(--pixel); color: var(--text); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 14px; color: var(--muted); }
+.score { font: 700 34px/1 var(--pixel); color: var(--ember); font-variant-numeric: tabular-nums; }
+.newbest { font: 12px var(--pixel); color: var(--night); background: var(--ember); padding: 4px 8px; border-radius: 4px; }
+.newbest[hidden] { display: none; }
+
+/* ---- touch controls ---- */
+#touch { display: none; }
+body.touch.playing #touch { display: block; }
+#stickzone { position: fixed; left: 0; top: 0; bottom: 0; width: 45%; touch-action: none; z-index: 2; }
+#stick { position: fixed; left: calc(86px + env(safe-area-inset-left)); top: calc(100% - 96px - env(safe-area-inset-bottom)); width: 92px; height: 92px; margin: -46px 0 0 -46px; border-radius: 50%;
+  border: 2px solid rgba(155,220,255,.35); background: rgba(20,30,60,.22); pointer-events: none; z-index: 3; opacity: .55; transition: opacity .12s; }
+#stick.on { opacity: 1; border-color: rgba(155,220,255,.8); background: rgba(20,30,60,.4); }
+#knob { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: rgba(155,220,255,.55); border: 2px solid rgba(220,245,255,.8); }
+.sk { position: fixed; z-index: 3; border-radius: 50%; border: 2px solid rgba(220,245,255,.7); color: #f2faff; font: 11px/1.15 var(--pixel); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  touch-action: none; padding: 0; text-shadow: 0 1px 0 #0b0a10; }
+.sk span { position: relative; pointer-events: none; }
+.sk small { font: 12px var(--hangul); opacity: .8; }
+.aimdot { position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: #fff; opacity: 0; pointer-events: none; }
+.sk.aiming .aimdot { opacity: .9; }
+.sk.aiming { box-shadow: 0 0 0 6px rgba(255,255,255,.12); }
+#btn-bolt { right: calc(20px + env(safe-area-inset-right)); bottom: calc(22px + env(safe-area-inset-bottom)); width: 88px; height: 88px; background: rgba(58,139,216,.55); }
+#btn-bolt.down { background: rgba(155,220,255,.7); }
+.cd { background: conic-gradient(var(--ring) var(--p, 360deg), rgba(20,30,60,.7) 0); }
+.cd::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgba(12,18,40,.88); }
+.cd.ready::before { background: var(--fill); }
+.cd.ready { border-color: #fff; box-shadow: 0 0 12px var(--ring); }
+#btn-ult { --ring: rgba(155,220,255,.95); --fill: rgba(58,139,216,.85); right: calc(118px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom)); width: 66px; height: 66px; }
+#btn-air { --ring: rgba(255,176,74,.95); --fill: rgba(200,90,30,.85); right: calc(36px + env(safe-area-inset-right)); bottom: calc(124px + env(safe-area-inset-bottom)); width: 66px; height: 66px; }
+.sk.down { transform: scale(.95); }
+
+@media (prefers-reduced-motion: reduce) { .big-btn:active, .card:active, .sk.down { transform: none; } }
 </style>
 </head>
 <body>
 <canvas id="game" width="320" height="180"></canvas>
-<div id="help">이동 WASD / 방향키 · 얼음탄 J 또는 Space · 궁극기 K 또는 R · 재시작 Enter</div>
-<div id="rotate">폰을 가로로 돌리면 더 크게 볼 수 있어요</div>
-<div id="ui">
+<div id="help">이동 WASD · 얼음탄 마우스 왼쪽/Space · 궁극기 K · 공습 E 또는 마우스 오른쪽 · 일시정지 Esc</div>
+<button id="btn-pause" aria-label="일시정지"><i></i><i></i></button>
+
+<div id="touch">
   <div id="stickzone"></div>
   <div id="stick"><div id="knob"></div></div>
-  <button class="btn" id="btn-ult" aria-label="궁극기"><span>ULT</span></button>
-  <button class="btn" id="btn-bolt" aria-label="얼음탄"><span>BOLT</span></button>
+  <button class="sk cd" id="btn-ult" aria-label="궁극기"><span>ULT</span><span><small>빙하</small></span></button>
+  <button class="sk cd" id="btn-air" aria-label="공습"><span class="aimdot"></span><span>AIR</span><span><small>공습</small></span></button>
+  <button class="sk" id="btn-bolt" aria-label="얼음탄"><span class="aimdot"></span><span>BOLT</span><span><small>얼음탄</small></span></button>
 </div>
+
+<section class="ov" id="ov-title" hidden>
+  <div class="box">
+    <h1 class="logo">FROST<br><b>WIZARD</b></h1>
+    <p class="sub">얼음 마법사와 공군 지원 · 몰려오는 몬스터를 막아라</p>
+    <button class="big-btn" id="btn-start">시작하기</button>
+    <dl class="controls" id="controls-touch">
+      <dt>MOVE</dt><dd>화면 왼쪽을 드래그</dd>
+      <dt>BOLT</dt><dd>누르고 있으면 연사. 탭은 자동 조준, 버튼을 끌면 그 방향으로 조준</dd>
+      <dt>AIR</dt><dd>버튼을 끌어 바닥의 폭격 지점을 고르고 손을 떼면 공습. 탭하면 적이 몰린 곳을 자동 조준</dd>
+      <dt>ULT</dt><dd>탭하면 주변을 얼리는 빙하의 고리</dd>
+    </dl>
+    <dl class="controls" id="controls-desk">
+      <dt>WASD</dt><dd>이동</dd>
+      <dt>MOUSE L</dt><dd>커서 쪽으로 얼음탄 (Space도 가능)</dd>
+      <dt>MOUSE R · E</dt><dd>커서 위치에 공군 공습</dd>
+      <dt>K</dt><dd>빙하의 고리 (궁극기)</dd>
+      <dt>ESC · M</dt><dd>일시정지 · 소리</dd>
+    </dl>
+    <p class="best" id="title-best"></p>
+  </div>
+</section>
+
+<section class="ov" id="ov-level" hidden>
+  <div class="box">
+    <h2>LEVEL UP<small id="level-title"></small></h2>
+    <div id="level-cards"></div>
+  </div>
+</section>
+
+<section class="ov" id="ov-pause" hidden>
+  <div class="box">
+    <h2>PAUSED<small>일시정지</small></h2>
+    <button class="big-btn" id="btn-resume">계속하기</button>
+    <div class="row"><button class="ghost-btn" id="btn-mute">소리 끄기</button><button class="ghost-btn" id="btn-quit">처음으로</button></div>
+  </div>
+</section>
+
+<section class="ov" id="ov-over" hidden>
+  <div class="box">
+    <h2>GAME OVER<small>마법사가 쓰러졌습니다</small></h2>
+    <div class="score" id="over-score">0</div>
+    <span class="newbest" id="over-best" hidden>NEW BEST</span>
+    <div class="stats">
+      <div class="stat"><b id="over-wave">0</b><span>웨이브</span></div>
+      <div class="stat"><b id="over-level">0</b><span>레벨</span></div>
+      <div class="stat"><b id="over-kills">0</b><span>처치</span></div>
+      <div class="stat"><b id="over-time">0:00</b><span>시간</span></div>
+    </div>
+    <div class="row"><button class="big-btn" id="btn-retry">다시 하기</button><button class="ghost-btn" id="btn-menu">처음으로</button></div>
+  </div>
+</section>
+
 <script type="module" src="./main.js"></script>
 </body>
 </html>
