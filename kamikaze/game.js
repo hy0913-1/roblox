@@ -103,16 +103,22 @@ const frames = new Map();
 let fxSeed = 7;
 const fxs = [];
 function addFx(mod, o = {}) {
-  const { x, y, scale = 1, stopAt = null, follow = null, lift = 0, ...rest } = o;
-  const e = { fx: createFx(mod, { ...rest, x: 0, y: 0, seed: (fxSeed = (fxSeed * 1103515245 + 12345) & 0x7fffffff) % 1000 }), x, y, scale, stopAt, follow, lift };
+  const { x, y, scale = 1, stopAt = null, follow = null, lift = 0, keep = false, ...rest } = o;
+  const e = { fx: createFx(mod, { ...rest, x: 0, y: 0, seed: (fxSeed = (fxSeed * 1103515245 + 12345) & 0x7fffffff) % 1000 }), x, y, scale, stopAt, follow, lift, keep, hidden: false };
   if (rest.angle) e.fx.options.angle = rest.angle;
   fxs.push(e);
   // never let the effects pile up: the oldest go first
-  while (fxs.length > 18) fxs.shift();
+  // (the jets are kept: they are the player's plane and the squadron)
+  while (fxs.length > 26) {
+    const i = fxs.findIndex((f) => !f.keep);
+    if (i < 0) break;
+    fxs.splice(i, 1);
+  }
   return e;
 }
 // effects are drawn at their own size into a private frame, then scaled onto the screen
 function drawFx(e, layer) {
+  if (e.hidden) return;
   const fx = e.fx, m = fx.meta, o = fx.options, rot = !!o.angle;
   const ow = m.size[0], oh = m.size[1];
   const side = rot ? Math.ceil(2 * Math.hypot(Math.max(m.origin[0], ow - m.origin[0]), Math.max(m.origin[1], oh - m.origin[1]))) : 0;
@@ -187,19 +193,21 @@ const TYPES = {
 };
 // the plasma blast is blue-violet by design; ours burns orange like the rest
 const FIRE_PLASMA = { palette: ["#3a0e0a", "#8a1a10", "#d8361e", "#ff7a1a", "#ffc23c", "#fff07a", "#ffffff"], accent: ["#3a0e0a", "#c9281f", "#ff7a1a", "#ffc23d", "#fff3a6"] };
-const DASH_SPEED = 390, DASH_MAX = 215, CRASH = 1.15, WALK = 78;
+const RAID_CD = 20, RAID_SPEED = 300, RAID_LEAD = 0.55;
+const DASH_SPEED = 390, DASH_MAX = 215, CRASH = 1.15, WALK = 104;
 let best = 0;
 try {
   best = +localStorage.getItem("kyungdeok.best") || 0;
 } catch {}
 
-const G = { mode: "title", t: 0, score: 0, wave: 0, standby: 5, R: 40, kills: 0, shake: 0, freeze: 0 };
+const G = { mode: "title", t: 0, score: 0, wave: 0, standby: 5, R: 40, kills: 0, shake: 0, freeze: 0, raidCd: 8 };
 const P = { x: W / 2, y: H / 2 + 24, face: 1, state: "walk", dashT: 0, tx: 0, ty: 0, dx: 0, dy: 0, inv: 0, respawn: 0, walk: 0, moving: false, trail: [] };
+let raid = null, bombs = [], rings = [], lastBoomSfx = 0;
 let enemies = [], queue = [], parts = [], texts = [], timers = [], combos = [], waveCooldown = 0, overT = 0, bossBanner = false;
 const later = (t, fn) => timers.push({ t, fn });
 
 function newGame() {
-  Object.assign(G, { mode: "play", t: 0, score: 0, wave: 0, standby: 5, R: 40, kills: 0, shake: 0, freeze: 0 });
+  Object.assign(G, { mode: "play", t: 0, score: 0, wave: 0, standby: 5, R: 40, kills: 0, shake: 0, freeze: 0, raidCd: 8 });
   Object.assign(P, { x: W / 2, y: H / 2 + 24, state: "walk", inv: 1.2, face: 1, trail: [] });
   enemies = [];
   queue = [];
@@ -208,6 +216,10 @@ function newGame() {
   timers = [];
   combos = [];
   fxs.length = 0;
+  raid = null;
+  bombs = [];
+  rings = [];
+  spawnJet();
   waveCooldown = 0.5;
   overT = 0;
   $("title").hidden = true;
@@ -267,7 +279,7 @@ function blast(x, y, R, o = {}) {
     const dx = e.x - x, dy = e.y - y, d = Math.hypot(dx, dy);
     if (d > R + e.r) continue;
     hits++;
-    const dmg = (d < R * 0.45 ? 3 : d < R * 0.8 ? 2 : 1) * (o.power ?? 1);
+    const dmg = (d < R * 0.45 ? 3 : d < R * 0.8 ? 2 : 1) * (o.power ?? 1) * (e.type === "king" ? (o.bossMul ?? 1) : 1);
     e.hp -= dmg;
     e.flash = 0.12;
     const k = 150 / Math.max(d, 4);
@@ -281,15 +293,25 @@ function blast(x, y, R, o = {}) {
   if (hurtPlayer && P.state === "walk" && P.inv <= 0 && Math.hypot(P.x - x, P.y - y) < R * 0.7) playerDie("keg");
   // the picture, picked by how much it caught
   const K = o.kind ?? "player";
-  if (K === "barrel") addFx(smallBoom, { x, y: y + 8, scale: 0.72, stopAt: 1.4 });
+  if (K === "raid") {
+    // bombs are cheap: a flash ring and a puff, with a real pixelfx blast now and then
+    rings.push({ x, y, t: 0 });
+    burst(x, y - 2, ["#ffd84a", "#ff7a1a", "#5c5c6b", "#3a3040"], 7);
+    if (o.big) addFx(smallBoom, { x, y: y + 8, scale: 0.6, stopAt: 1.0 });
+  } else if (K === "barrel") addFx(smallBoom, { x, y: y + 8, scale: 0.72, stopAt: 1.4 });
   else if (K === "mini") addFx(smallBoom, { x, y: y + 6, scale: 0.28, stopAt: 1.0 });
   else if (kills >= 12) addFx(bigBoom, { x, y: y + 8, scale: R / 62, stopAt: 2.4 });
   else if (kills >= 5) addFx(plasmaBoom, { x, y, scale: R / 52, stopAt: 1.6, ...FIRE_PLASMA });
   else addFx(smallBoom, { x, y: y + 8, scale: R / 46, stopAt: 1.7 });
   const kk = Math.min(kills, 20);
-  G.shake = Math.max(G.shake, K === "mini" ? 2 : Math.min(9, 3 + kk * 0.5));
-  G.freeze = Math.max(G.freeze, K === "mini" ? 0.03 : 0.05 + kk * 0.005);
-  sfxBoom(K === "mini" ? 0.5 : 1 + kk * 0.4);
+  if (K === "raid") {
+    G.shake = Math.max(G.shake, 1.6);
+    if (G.t - lastBoomSfx > 0.09) (lastBoomSfx = G.t), sfxBoom(0.35);
+  } else {
+    G.shake = Math.max(G.shake, K === "mini" ? 2 : Math.min(9, 3 + kk * 0.5));
+    G.freeze = Math.max(G.freeze, K === "mini" ? 0.03 : 0.05 + kk * 0.005);
+    sfxBoom(K === "mini" ? 0.5 : 1 + kk * 0.4);
+  }
   if (cb) {
     cb.t = 0.55;
     cb.x = x;
@@ -301,6 +323,7 @@ function kill(e, cb) {
   e.dead = true;
   const d = TYPES[e.type];
   G.kills++;
+  if (!cb?.raid) G.raidCd = Math.max(0, G.raidCd - 0.3);
   if (cb) {
     cb.kills++;
     cb.base += d.pts;
@@ -333,10 +356,11 @@ function finishCombos(dt) {
     if (c.t > 0 || c.pending > 0 || c.done) continue;
     c.done = true;
     if (c.kills <= 0) continue;
-    const add = c.base * c.kills;
+    const add = c.base * (c.raid ? Math.ceil(c.kills / 3) : c.kills);
     G.score += add;
     const big = c.kills >= 8;
-    pop(c.x, c.y - 14, c.kills >= 2 ? `${c.kills}연쇄! +${add}` : `+${add}`, big ? "#ffd84a" : "#fff6dc", big);
+    pop(c.x, c.y - 14, c.raid ? `공습 ${c.kills}킬! +${add}` : c.kills >= 2 ? `${c.kills}연쇄! +${add}` : `+${add}`, big ? "#ffd84a" : "#fff6dc", big);
+    if (c.raid) continue;
     if (c.kills >= 6) addFx(cartoonPow, { x: c.x, y: c.y - 8, scale: 0.34, text: c.kills >= 12 ? "KABOOM!" : c.kills >= 8 ? "BOOM!" : "CRASH!" });
     const bonus = c.kills >= 15 ? 2 : c.kills >= 8 ? 1 : 0;
     if (bonus) {
@@ -351,7 +375,86 @@ function pop(x, y, str, color, big) {
   texts.push({ x, y, str, color, t: 0, big });
 }
 
+// ---- the air raid: a flight of fighters sweeps the lane and carpet-bombs it ----------------------------------
+function callRaid() {
+  if (G.mode !== "play" || raid || G.raidCd > 0) return;
+  // the lane: where the aim points, or the row with most enemies
+  let y = usingTouch || !aim.has ? null : aim.y;
+  if (y == null) {
+    const t = bestTarget();
+    y = t ? t.y : P.y;
+    if (!t) {
+      let bs = 0;
+      for (const e of enemies) {
+        const n = enemies.filter((o) => Math.abs(o.y - e.y) < 22).length;
+        if (n > bs) (bs = n), (y = e.y);
+      }
+    }
+  }
+  y = clamp(y, 40, H - 36);
+  const dir = rnd() < 0.5 ? 1 : -1, form = [[0, 0], [22, -15], [22, 15], [44, -30], [44, 30]];
+  raid = { t: 0, dir, y, combo: null, jets: form.map(([back, side]) => ({ back, x: -99, y: y + side, drop: rr(0, 0.1) })) };
+  G.raidCd = RAID_CD;
+  banner("공군 출격! 공습 개시");
+  sfxBlip(700, 160, 1.5, "sawtooth", 0.07);
+}
+function raidStep(dt) {
+  if (!raid) return;
+  raid.t += dt;
+  const s = (raid.t - RAID_LEAD) * RAID_SPEED, hx = raid.dir > 0 ? -50 + s : W + 50 - s;
+  if (raid.t < RAID_LEAD) return;
+  if (!raid.combo) {
+    raid.combo = newCombo(W / 2, raid.y);
+    raid.combo.raid = true;
+    raid.combo.pending = 1; // held open while the flight is overhead
+    for (const j of raid.jets) j.fx = addFx(fighterJet, { follow: j, lift: 22, scale: 0.48, angle: raid.dir > 0 ? 0 : Math.PI, keep: true });
+  }
+  for (const j of raid.jets) {
+    j.x = hx - raid.dir * j.back;
+    if (j.x > 6 && j.x < W - 6) {
+      j.drop -= dt;
+      if (j.drop <= 0) {
+        j.drop = rr(0.13, 0.2);
+        bombs.push({ x: j.x + raid.dir * 6, y: j.y + rr(-5, 5), t: 0, fall: 0.38, n: (raid.n = (raid.n ?? 0) + 1) });
+      }
+    }
+  }
+  const out = raid.dir > 0 ? hx - raid.jets[raid.jets.length - 1].back * raid.dir > W + 60 : hx + 44 < -60;
+  if (out) {
+    for (const j of raid.jets) {
+      const i = fxs.indexOf(j.fx);
+      if (i >= 0) fxs.splice(i, 1);
+    }
+    raid.combo.pending = 0;
+    raid = null;
+  }
+}
+function bombsStep(dt) {
+  for (const b of bombs) {
+    b.t += dt;
+    if (b.t >= b.fall && !b.hit) {
+      b.hit = true;
+      blast(b.x, b.y, 22, { combo: raid?.combo ?? combos.find((c) => c.raid && !c.done), kind: "raid", power: 0.75, bossMul: 0.3, big: b.n % 4 === 0, hurtPlayer: false });
+    }
+  }
+  bombs = bombs.filter((b) => !b.hit);
+  for (const r of rings) r.t += dt;
+  rings = rings.filter((r) => r.t < 0.3);
+}
+
 // ---- 경덕 -------------------------------------------------------------------------------------------------
+// 경덕 is always at the controls of his fighter
+function spawnJet() {
+  killJet();
+  P.heading = P.face > 0 ? 0 : Math.PI;
+  P.jet = addFx(fighterJet, { follow: P, lift: 9, scale: 0.44, angle: P.heading || 1e-4, keep: true });
+}
+function killJet() {
+  if (!P.jet) return;
+  const i = fxs.indexOf(P.jet);
+  if (i >= 0) fxs.splice(i, 1);
+  P.jet = null;
+}
 function launch(tx, ty) {
   if (P.state !== "walk") return;
   let dx = tx - P.x, dy = ty - P.y, d = Math.hypot(dx, dy);
@@ -368,8 +471,8 @@ function launch(tx, ty) {
   P.age = 0;
   P.trail = [];
   if (Math.abs(P.dx) > 0.2) P.face = Math.sign(P.dx);
-  // 경덕 climbs into the fighter and puts the nose down on the target
-  P.jet = addFx(fighterJet, { follow: P, lift: 11, scale: 0.44, angle: Math.atan2(P.dy, P.dx) });
+  // nose down on the target
+  P.heading = Math.atan2(P.dy, P.dx);
   burst(P.x, P.y - 6, ["#fff6dc", "#ffd84a"], 8);
   sfxBlip(180, 1500, Math.max(0.2, P.dashT), "sawtooth", 0.1);
 }
@@ -377,8 +480,7 @@ function detonate() {
   if (P.state !== "dash") return;
   const cb = newCombo(P.x, P.y);
   P.state = "down";
-  const i = fxs.indexOf(P.jet);
-  if (i >= 0) fxs.splice(i, 1);
+  killJet();
   // the fighter hits the ground nose first
   burst(P.x, P.y - 8, ["#9aa6ba", "#5c6578", "#3a4254", "#ffb04a", "#ece8d4"], 26);
   blast(P.x, P.y, G.R * CRASH, { combo: cb, kind: "player", power: 1.25 });
@@ -387,6 +489,7 @@ function detonate() {
 function playerDie(cause) {
   if (P.state !== "walk" || P.inv > 0) return;
   P.state = "down";
+  killJet();
   const cb = newCombo(P.x, P.y);
   blast(P.x, P.y, 20, { combo: cb, kind: "mini", power: 0.7 });
   burst(P.x, P.y - 6, ["#c9a46a", "#e0364a", "#8e5c2c", "#f3c49d"], 12);
@@ -406,6 +509,7 @@ function respawn() {
   P.x = W / 2;
   P.y = H / 2 + 24;
   P.inv = 2.0;
+  spawnJet();
   addFx(blinkIn, { x: P.x, y: P.y, scale: 0.45, stopAt: 1.2 });
   sfxBlip(300, 900, 0.25, "triangle", 0.12);
 }
@@ -442,6 +546,7 @@ addEventListener("keydown", (e) => {
   if (e.repeat) return;
   keys.add(e.code);
   if (e.code === "Space" || e.code === "Enter") act();
+  if (e.code === "KeyF" || e.code === "ShiftLeft" || e.code === "KeyE") callRaid();
 });
 addEventListener("keyup", (e) => keys.delete(e.code));
 function toWorld(ev) {
@@ -473,6 +578,16 @@ stage.addEventListener("pointermove", (ev) => {
 });
 stage.addEventListener("pointerdown", (ev) => {
   if (ev.target.closest("button")) return;
+  if (ev.target.closest("#raid")) {
+    if (ev.pointerType === "touch") (usingTouch = true), document.body.classList.add("touch");
+    audio();
+    return callRaid();
+  }
+  if (ev.pointerType !== "touch" && ev.button === 2) {
+    Object.assign(aim, toWorld(ev), { has: true });
+    usingTouch = false;
+    return callRaid();
+  }
   if (ev.pointerType === "touch") {
     usingTouch = true;
     document.body.classList.add("touch");
@@ -566,6 +681,9 @@ function update(dt) {
   // player
   P.inv = Math.max(0, P.inv - dt);
   P.moving = false;
+  G.raidCd = Math.max(0, G.raidCd - dt);
+  raidStep(dt);
+  bombsStep(dt);
   if (P.state === "walk") {
     let mx = (keys.has("KeyD") || keys.has("ArrowRight") ? 1 : 0) - (keys.has("KeyA") || keys.has("ArrowLeft") ? 1 : 0) + stickV.x;
     let my = (keys.has("KeyS") || keys.has("ArrowDown") ? 1 : 0) - (keys.has("KeyW") || keys.has("ArrowUp") ? 1 : 0) + stickV.y;
@@ -578,6 +696,10 @@ function update(dt) {
       if (Math.abs(mx) > 0.15) P.face = Math.sign(mx);
       P.moving = true;
       P.walk += dt * 9;
+      // bank the nose round to where we are going
+      let da = Math.atan2(my, mx) - P.heading;
+      da = Math.atan2(Math.sin(da), Math.cos(da));
+      P.heading += da * Math.min(1, dt * 9);
     }
   } else if (P.state === "dash") {
     P.age += dt;
@@ -601,9 +723,14 @@ function update(dt) {
     queue[0].t -= dt;
     if (queue[0].t <= 0) spawnCluster(queue.shift());
   }
+  if (P.jet) {
+    P.jet.fx.options.angle = P.heading || 1e-4;
+    P.jet.lift = 9 + Math.sin(G.t * 3) * 1.2;
+    P.jet.hidden = P.inv > 0 && Math.floor(G.t * 14) % 2 === 1;
+  }
   stepEnemies(dt, true);
   const live = enemies.filter((e) => !e.dead && e.type !== "barrel").length;
-  if (G.wave > 0 && !queue.length && live === 0 && waveCooldown <= 0 && !combos.length) {
+  if (G.wave > 0 && !queue.length && live === 0 && waveCooldown <= 0 && !combos.length && !raid && !bombs.length) {
     waveCooldown = 2.6;
     G.standby++;
     G.R = Math.min(58, G.R + 2);
@@ -675,6 +802,8 @@ function stepEnemies(dt, hurt) {
 }
 function gameOver() {
   G.mode = "over";
+  raid = null;
+  bombs = [];
   const isBest = G.score > best;
   if (isBest) {
     best = G.score;
@@ -735,31 +864,45 @@ function drawEnemy(e) {
   }
 }
 function drawPlayer() {
-  if (P.state === "down") return;
-  const x = Math.round(P.x), y = Math.round(P.y);
-  if (P.inv > 0 && Math.floor(G.t * 14) % 2) return;
-  shadow(x, y + 1, 11);
-  if (P.state === "dash") {
-    // the jet's shadow slides over the grass under it
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    for (let i = -10; i <= 10; i++) ctx.fillRect(Math.round(x + P.dx * i), Math.round(y + 3 + P.dy * i * 0.5), 2, 1 + (Math.abs(i) < 5 ? 1 : 0));
-    ctx.fillRect(x - 5, y + 2, 10, 2);
-    return;
+  if (P.state === "down" || (P.inv > 0 && Math.floor(G.t * 14) % 2)) return;
+  // the fighter's shadow on the grass; the plane itself is a pixelfx effect drawn on top
+  const x = Math.round(P.x), y = Math.round(P.y), c = Math.cos(P.heading), sn = Math.sin(P.heading);
+  ctx.fillStyle = "rgba(0,0,0,0.33)";
+  for (let i = -9; i <= 9; i++) ctx.fillRect(Math.round(x + c * i), Math.round(y + 2 + sn * i * 0.55), 2, Math.abs(i) < 4 ? 2 : 1);
+  ctx.fillRect(Math.round(x - sn * 6), Math.round(y + 2 + c * 3), 3, 1);
+  ctx.fillRect(Math.round(x + sn * 6), Math.round(y + 2 - c * 3), 3, 1);
+}
+function drawRaid() {
+  if (raid && raid.t < RAID_LEAD) {
+    // a warning band over the lane
+    ctx.fillStyle = `rgba(255,70,60,${0.1 + 0.1 * Math.sin(G.t * 24)})`;
+    ctx.fillRect(0, Math.round(raid.y - 34), W, 68);
+    ctx.fillStyle = "rgba(255,216,74,.9)";
+    for (let x = 0; x < W; x += 12) ctx.fillRect(x, Math.round(raid.y - 34), 6, 1), ctx.fillRect(x + 6, Math.round(raid.y + 33), 6, 1);
   }
-  const step = P.moving && Math.floor(P.walk) % 2, im = step ? KD.b : KD.a, w = im.width, h = im.height;
-  const bob = P.moving && step ? 1 : 0;
-  ctx.save();
-  if (P.face < 0) {
-    ctx.translate(x * 2, 0);
-    ctx.scale(-1, 1);
+  if (raid && raid.combo) {
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    for (const j of raid.jets) ctx.fillRect(Math.round(j.x - 9), Math.round(j.y + 12), 18, 4);
   }
-  ctx.drawImage(im, x - (w >> 1), y - h + 1 - bob);
-  ctx.restore();
-  // the dynamite fuses, always fizzing
-  const fl = Math.floor(G.t * 18) % 3, fy = y - 8 - bob, fxp = x + (P.face > 0 ? 0 : 0);
-  ctx.fillStyle = fl ? "#fff07a" : "#ff9a3a";
-  ctx.fillRect(fxp - 2, fy - 1 - (fl === 2 ? 1 : 0), 1, 1);
-  ctx.fillRect(fxp + 1, fy - 2 + (fl === 1 ? 1 : 0), 1, 1);
+  for (const b of bombs) {
+    const k = clamp(b.t / b.fall, 0, 1), h = (1 - k * k) * 40;
+    ctx.fillStyle = `rgba(0,0,0,${0.15 + 0.2 * k})`;
+    ctx.fillRect(Math.round(b.x - 1 - k * 2), Math.round(b.y), 3 + Math.round(k * 4), 2);
+    ctx.fillStyle = "#2a2f3a";
+    ctx.fillRect(Math.round(b.x - 1), Math.round(b.y - h - 4), 3, 5);
+    ctx.fillStyle = "#9aa6ba";
+    ctx.fillRect(Math.round(b.x), Math.round(b.y - h - 4), 1, 3);
+    ctx.fillStyle = "#e0364a";
+    ctx.fillRect(Math.round(b.x - 1), Math.round(b.y - h - 6), 3, 1);
+  }
+  for (const r of rings) {
+    ctx.globalAlpha = 1 - r.t / 0.3;
+    ctx.strokeStyle = "#ffe26b";
+    ctx.beginPath();
+    ctx.arc(Math.round(r.x) + 0.5, Math.round(r.y) + 0.5, 4 + (r.t / 0.3) * 24, 0, 6.283);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
 }
 function drawReticle() {
   if (G.mode !== "play" || P.state !== "walk") return;
@@ -789,6 +932,7 @@ function draw() {
   ctx.drawImage(floor, 0, 0);
   for (const e of fxs) drawFx(e, "back");
   drawReticle();
+  drawRaid();
   const things = [...enemies.map((e) => ({ y: e.y, f: () => drawEnemy(e) })), { y: P.y, f: drawPlayer }].sort((a, b) => a.y - b.y);
   for (const t of things) t.f();
   for (const e of fxs) drawFx(e, "front");
@@ -822,6 +966,10 @@ function hud() {
   setText("wave", G.wave ? `WAVE ${G.wave}` : "준비!");
   const live = enemies.filter((e) => e.type !== "barrel").length + (queue.reduce((s, c) => s + c.n, 0) || 0);
   setText("foes", G.mode === "play" ? `남은 적 ${live}` : "");
+  const rp = G.mode === "play" ? Math.round((1 - G.raidCd / RAID_CD) * 100) : 0, ready = G.mode === "play" && G.raidCd <= 0 && !raid;
+  const rb = $("raid");
+  if (hudCache.rp !== rp) (hudCache.rp = rp), rb.style.setProperty("--p", rp);
+  if (hudCache.rr !== ready) (hudCache.rr = ready), rb.classList.toggle("ready", ready);
   const L = $("lives");
   const html = "<i>" + "★".repeat(Math.min(G.standby, 12)) + (G.standby > 12 ? "+" + (G.standby - 12) : "") + (G.standby ? "" : "-") + "</i>";
   if (hudCache.lives !== html) (hudCache.lives = html), (L.innerHTML = html);
@@ -840,4 +988,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 // title screen: the arena idles behind the menu
 G.mode = "title";
-window.__kd = { addFx, mods: { smallBoom, plasmaBoom, bigBoom, cartoonPow, fighterJet, blinkIn, slimePop, levelUp }, FIRE_PLASMA, G, P, get enemies() { return enemies; }, newGame, launch, detonate, act, beginWave, spawn, blast, fxs };
+window.__kd = { callRaid, get raid() { return raid; }, get bombs() { return bombs; }, addFx, mods: { smallBoom, plasmaBoom, bigBoom, cartoonPow, fighterJet, blinkIn, slimePop, levelUp }, FIRE_PLASMA, G, P, get enemies() { return enemies; }, newGame, launch, detonate, act, beginWave, spawn, blast, fxs };

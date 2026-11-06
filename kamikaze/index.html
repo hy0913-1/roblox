@@ -28,6 +28,12 @@
   #touch { position:absolute; inset:0; pointer-events:none; }
   #fire { position:absolute; right:3%; bottom:8%; width:clamp(78px,24vmin,130px); height:clamp(78px,24vmin,130px); border-radius:50%; border:4px solid var(--ink); background:radial-gradient(circle at 35% 30%,#ff9a7a,var(--red) 60%,#8a1a24); color:#fff; font-weight:900; font-size:clamp(15px,4vmin,24px); display:none; align-items:center; justify-content:center; pointer-events:auto; box-shadow:0 5px 0 #4a0a14; }
   #fire.down { transform:translateY(3px); box-shadow:0 2px 0 #4a0a14; }
+  #raid { position:absolute; right:calc(3% + clamp(78px,24vmin,130px) * .18); bottom:calc(8% + clamp(78px,24vmin,130px) + 10px); width:clamp(58px,17vmin,92px); height:clamp(58px,17vmin,92px); border-radius:50%; border:3px solid var(--ink); background:conic-gradient(var(--gold) calc(var(--p,0) * 1%), #3a3550 0); display:flex; align-items:center; justify-content:center; pointer-events:auto; box-shadow:0 4px 0 #14101c; cursor:pointer; }
+  #raid span { width:78%; height:78%; border-radius:50%; background:#1b1326; color:#ffe9a8; font-weight:900; font-size:clamp(11px,2.9vmin,17px); display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1.1; text-align:center; }
+  #raid span small { font-size:.62em; font-weight:700; opacity:.8; }
+  #raid.ready span { background:var(--red); color:#fff; animation: ready .7s ease-in-out infinite alternate; }
+  @keyframes ready { to { box-shadow:0 0 14px 3px rgba(255,216,74,.9); } }
+  @media (prefers-reduced-motion: reduce) { #raid.ready span { animation:none; } }
   #stick { position:absolute; width:96px; height:96px; margin:-48px 0 0 -48px; border-radius:50%; border:3px solid rgba(255,246,220,.5); background:rgba(255,246,220,.12); display:none; }
   #stick b { position:absolute; left:50%; top:50%; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; background:rgba(255,246,220,.6); }
   body.touch #fire { display:flex; }
@@ -44,11 +50,11 @@
     <div class="right"><span id="lives"></span><small>대기 중인 경덕</small></div>
   </div>
   <div id="banner"></div>
-  <div id="touch"><div id="stick"><b></b></div><div id="fire">꼬라박!</div></div>
+  <div id="touch"><div id="stick"><b></b></div><div id="raid" role="button" aria-label="공습"><span>공습<small>F · 우클릭</small></span></div><div id="fire">꼬라박!</div></div>
   <div class="overlay" id="title">
     <h1>경덕 특공대</h1>
-    <p>몰려오는 몬스터 한가운데로 전투기를 몰고 <b>꼬라박아</b> 한 방에 쓸어버리세요!<br>많이 한꺼번에 터뜨릴수록 점수와 보너스가 커집니다. 한 번 박을 때마다 경덕이 한 명씩 사라지니 아껴 쓰세요.</p>
-    <p class="keys"><kbd>WASD</kbd> 이동 · 마우스로 조준 · <kbd>스페이스</kbd>/클릭 = 전투기 출격, 비행 중에 한 번 더 누르면 바로 충돌<br>폰: 왼쪽 화면을 끌어서 이동, <b>꼬라박!</b> 버튼 (자동 조준)</p>
+    <p>전투기를 몰고 몬스터 한가운데에 <b>꼬라박아</b> 쓸어버리세요! 한 번 박을 때마다 경덕이 한 명씩 사라지니 아껴 쓰세요.<br>모이면 <b>공습</b>: 공군 편대가 화면을 가로지르며 폭격을 퍼붓습니다. 적을 잡을수록 빨리 충전돼요.</p>
+    <p class="keys"><kbd>WASD</kbd> 비행 · 마우스로 조준 · <kbd>스페이스</kbd>/클릭 = 꼬라박기, 비행 중에 한 번 더 누르면 바로 충돌 · <kbd>F</kbd>/우클릭 = 공습(조준한 줄을 폭격)<br>폰: 왼쪽 화면을 끌어서 비행, <b>꼬라박!</b>·<b>공습</b> 버튼 (자동 조준)</p>
     <button id="start">출격!</button>
   </div>
   <div class="overlay" id="over" hidden>

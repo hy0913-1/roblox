@@ -10,8 +10,11 @@ node build.mjs                   # dist/kamikaze.html 한 파일로 묶기 (npx 
 ```
 
 ## 조작
-- 이동 WASD / 방향키, 조준 마우스, 전투기 출격 스페이스·클릭. 비행 중에 한 번 더 누르면 그 자리에서 폭발.
+- 경덕은 항상 전투기를 몰고 있다. 비행 WASD / 방향키, 조준 마우스, 전투기 출격 스페이스·클릭. 비행 중에 한 번 더 누르면 그 자리에서 폭발.
 - 폰: 화면 왼쪽을 끌어서 이동, "꼬라박!" 버튼은 가장 빽빽한 적 무리를 자동 조준.
+
+## 공습 (F / 우클릭 / 폰의 공습 버튼)
+공군 편대(전투기 5대)가 조준한 줄을 가로지르며 폭탄을 퍼붓는다. 쿨다운 20초, 적을 잡을 때마다 0.3초씩 줄어든다. 점수는 들어오지만 경덕 보너스는 없고, 보스에게는 피해가 약하다.
 
 ## 규칙
 - 폭발 한 번에 경덕 한 명이 사라진다(대기 ★ -1). 적에게 닿아도 죽는다. 대기가 0이면 끝.
@@ -19,4 +22,4 @@ node build.mjs                   # dist/kamikaze.html 한 파일로 묶기 (npx 
 - 웨이브를 깨면 경덕 +1, 폭발 반경 +2. 5웨이브마다 왕 슬라임. 화약통은 연쇄 폭발한다.
 
 ## 쓰는 pixelfx 효과 (`vendor/pixelfx`, MIT)
-explosions/small-explosion, plasma-explosion(주황으로 재색칠), big-explosion, cartoon-pow; rpg/fighter-jet(경덕의 전투기); arcane/blink-in(부활); rpg/slime-pop, level-up.
+explosions/small-explosion, plasma-explosion(주황으로 재색칠), big-explosion, cartoon-pow; rpg/fighter-jet(경덕의 전투기와 공군 편대); arcane/blink-in(부활); rpg/slime-pop, level-up.
