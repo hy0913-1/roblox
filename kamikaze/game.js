@@ -6,10 +6,10 @@ import * as smallBoom from "./vendor/pixelfx/src/fx/explosions/small-explosion.j
 import * as plasmaBoom from "./vendor/pixelfx/src/fx/explosions/plasma-explosion.js";
 import * as bigBoom from "./vendor/pixelfx/src/fx/explosions/big-explosion.js";
 import * as cartoonPow from "./vendor/pixelfx/src/fx/explosions/cartoon-pow.js";
-import * as fireball from "./vendor/pixelfx/src/fx/fire/fireball.js";
 import * as blinkIn from "./vendor/pixelfx/src/fx/arcane/blink-in.js";
 import * as slimePop from "./vendor/pixelfx/src/fx/rpg/slime-pop.js";
 import * as levelUp from "./vendor/pixelfx/src/fx/rpg/level-up.js";
+import * as fighterJet from "./vendor/pixelfx/src/fx/rpg/fighter-jet.js";
 
 const W = 384, H = 216;
 const $ = (id) => document.getElementById(id);
@@ -103,8 +103,8 @@ const frames = new Map();
 let fxSeed = 7;
 const fxs = [];
 function addFx(mod, o = {}) {
-  const { x, y, scale = 1, stopAt = null, follow = null, ...rest } = o;
-  const e = { fx: createFx(mod, { ...rest, x: 0, y: 0, seed: (fxSeed = (fxSeed * 1103515245 + 12345) & 0x7fffffff) % 1000 }), x, y, scale, stopAt, follow };
+  const { x, y, scale = 1, stopAt = null, follow = null, lift = 0, ...rest } = o;
+  const e = { fx: createFx(mod, { ...rest, x: 0, y: 0, seed: (fxSeed = (fxSeed * 1103515245 + 12345) & 0x7fffffff) % 1000 }), x, y, scale, stopAt, follow, lift };
   if (rest.angle) e.fx.options.angle = rest.angle;
   fxs.push(e);
   // never let the effects pile up: the oldest go first
@@ -129,7 +129,7 @@ function drawFx(e, layer) {
   fx.draw(f.frame, layer);
   composite(f.frame, f.img.data, null);
   f.cv.getContext("2d").putImageData(f.img, 0, 0);
-  const k = e.scale, px = e.follow ? e.follow.x : e.x, py = e.follow ? e.follow.y : e.y;
+  const k = e.scale, px = e.follow ? e.follow.x : e.x, py = (e.follow ? e.follow.y : e.y) - e.lift;
   ctx.drawImage(f.cv, Math.round(px - ox * k), Math.round(py - oy * k), Math.round(w * k), Math.round(h * k));
 }
 
@@ -187,7 +187,7 @@ const TYPES = {
 };
 // the plasma blast is blue-violet by design; ours burns orange like the rest
 const FIRE_PLASMA = { palette: ["#3a0e0a", "#8a1a10", "#d8361e", "#ff7a1a", "#ffc23c", "#fff07a", "#ffffff"], accent: ["#3a0e0a", "#c9281f", "#ff7a1a", "#ffc23d", "#fff3a6"] };
-const DASH_SPEED = 330, DASH_MAX = 170, WALK = 78;
+const DASH_SPEED = 390, DASH_MAX = 215, CRASH = 1.15, WALK = 78;
 let best = 0;
 try {
   best = +localStorage.getItem("kyungdeok.best") || 0;
@@ -337,7 +337,7 @@ function finishCombos(dt) {
     G.score += add;
     const big = c.kills >= 8;
     pop(c.x, c.y - 14, c.kills >= 2 ? `${c.kills}연쇄! +${add}` : `+${add}`, big ? "#ffd84a" : "#fff6dc", big);
-    if (c.kills >= 6) addFx(cartoonPow, { x: c.x, y: c.y - 8, scale: 0.34, text: c.kills >= 12 ? "KABOOM!" : c.kills >= 8 ? "BOOM!" : "POW!" });
+    if (c.kills >= 6) addFx(cartoonPow, { x: c.x, y: c.y - 8, scale: 0.34, text: c.kills >= 12 ? "KABOOM!" : c.kills >= 8 ? "BOOM!" : "CRASH!" });
     const bonus = c.kills >= 15 ? 2 : c.kills >= 8 ? 1 : 0;
     if (bonus) {
       G.standby += bonus;
@@ -368,14 +368,20 @@ function launch(tx, ty) {
   P.age = 0;
   P.trail = [];
   if (Math.abs(P.dx) > 0.2) P.face = Math.sign(P.dx);
-  addFx(fireball, { follow: P, scale: 0.34, angle: Math.atan2(P.dy, P.dx), stopAt: P.dashT + 0.1 });
-  sfxBlip(260, 1300, Math.max(0.15, P.dashT), "sawtooth", 0.09);
+  // 경덕 climbs into the fighter and puts the nose down on the target
+  P.jet = addFx(fighterJet, { follow: P, lift: 11, scale: 0.44, angle: Math.atan2(P.dy, P.dx) });
+  burst(P.x, P.y - 6, ["#fff6dc", "#ffd84a"], 8);
+  sfxBlip(180, 1500, Math.max(0.2, P.dashT), "sawtooth", 0.1);
 }
 function detonate() {
   if (P.state !== "dash") return;
   const cb = newCombo(P.x, P.y);
   P.state = "down";
-  blast(P.x, P.y, G.R, { combo: cb, kind: "player" });
+  const i = fxs.indexOf(P.jet);
+  if (i >= 0) fxs.splice(i, 1);
+  // the fighter hits the ground nose first
+  burst(P.x, P.y - 8, ["#9aa6ba", "#5c6578", "#3a4254", "#ffb04a", "#ece8d4"], 26);
+  blast(P.x, P.y, G.R * CRASH, { combo: cb, kind: "player", power: 1.25 });
   loseOne("blast");
 }
 function playerDie(cause) {
@@ -733,36 +739,27 @@ function drawPlayer() {
   const x = Math.round(P.x), y = Math.round(P.y);
   if (P.inv > 0 && Math.floor(G.t * 14) % 2) return;
   shadow(x, y + 1, 11);
-  const step = P.moving && Math.floor(P.walk) % 2, im = P.state === "dash" ? KD.b : step ? KD.b : KD.a, w = im.width, h = im.height;
   if (P.state === "dash") {
-    // an afterimage trail
-    P.trail.forEach((t, i) => {
-      ctx.globalAlpha = 0.28 - i * 0.05;
-      ctx.drawImage(im, Math.round(t.x) - (w >> 1), Math.round(t.y) - h + 1);
-    });
-    ctx.globalAlpha = 1;
+    // the jet's shadow slides over the grass under it
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    for (let i = -10; i <= 10; i++) ctx.fillRect(Math.round(x + P.dx * i), Math.round(y + 3 + P.dy * i * 0.5), 2, 1 + (Math.abs(i) < 5 ? 1 : 0));
+    ctx.fillRect(x - 5, y + 2, 10, 2);
+    return;
   }
+  const step = P.moving && Math.floor(P.walk) % 2, im = step ? KD.b : KD.a, w = im.width, h = im.height;
   const bob = P.moving && step ? 1 : 0;
   ctx.save();
   if (P.face < 0) {
     ctx.translate(x * 2, 0);
     ctx.scale(-1, 1);
   }
-  if (P.state === "dash") {
-    // leaning into the dash, stretched along it a touch
-    ctx.drawImage(im, x - (w >> 1), y - h + 1);
-  } else ctx.drawImage(im, x - (w >> 1), y - h + 1 - bob);
+  ctx.drawImage(im, x - (w >> 1), y - h + 1 - bob);
   ctx.restore();
   // the dynamite fuses, always fizzing
   const fl = Math.floor(G.t * 18) % 3, fy = y - 8 - bob, fxp = x + (P.face > 0 ? 0 : 0);
   ctx.fillStyle = fl ? "#fff07a" : "#ff9a3a";
   ctx.fillRect(fxp - 2, fy - 1 - (fl === 2 ? 1 : 0), 1, 1);
   ctx.fillRect(fxp + 1, fy - 2 + (fl === 1 ? 1 : 0), 1, 1);
-  if (P.state === "dash") {
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(fxp - 2 + (fl - 1) * 2, fy - 3, 1, 1);
-    ctx.fillRect(fxp + 1 - (fl - 1) * 2, fy - 4, 1, 1);
-  }
 }
 function drawReticle() {
   if (G.mode !== "play" || P.state !== "walk") return;
@@ -843,4 +840,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 // title screen: the arena idles behind the menu
 G.mode = "title";
-window.__kd = { addFx, mods: { smallBoom, plasmaBoom, bigBoom, cartoonPow, fireball, blinkIn, slimePop, levelUp }, FIRE_PLASMA, G, P, get enemies() { return enemies; }, newGame, launch, detonate, act, beginWave, spawn, blast, fxs };
+window.__kd = { addFx, mods: { smallBoom, plasmaBoom, bigBoom, cartoonPow, fighterJet, blinkIn, slimePop, levelUp }, FIRE_PLASMA, G, P, get enemies() { return enemies; }, newGame, launch, detonate, act, beginWave, spawn, blast, fxs };
