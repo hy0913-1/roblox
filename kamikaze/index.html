@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>경덕 특공대</title>
+<style>
+  :root { color-scheme: dark; --ink:#1b1326; --paper:#fff6dc; --red:#e0364a; --gold:#f2c14e; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; height:100%; background:#0d0a14; color:var(--paper); font-family: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; }
+  #stage { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); }
+  canvas { display:block; width:100%; height:100%; image-rendering:pixelated; image-rendering:crisp-edges; background:#2f6a34; }
+  .hud { position:absolute; left:0; right:0; top:0; display:flex; justify-content:space-between; align-items:flex-start; padding:6px 8px; pointer-events:none; font-weight:800; text-shadow:0 1px 0 var(--ink),1px 0 0 var(--ink),-1px 0 0 var(--ink),0 -1px 0 var(--ink); font-size:clamp(11px,2.6vmin,18px); }
+  .hud small { display:block; font-weight:600; opacity:.85; font-size:.72em; }
+  .hud .mid { text-align:center; }
+  .hud .right { text-align:right; }
+  #lives i { font-style:normal; color:var(--gold); }
+  .overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; background:rgba(13,10,20,.78); text-align:center; padding:16px; }
+  .overlay[hidden] { display:none; }
+  h1 { margin:0; font-size:clamp(26px,9vmin,60px); letter-spacing:.02em; color:var(--gold); text-shadow:0 3px 0 #8a1a24,0 6px 0 var(--ink); }
+  h2 { margin:0; font-size:clamp(22px,7vmin,44px); color:var(--red); text-shadow:0 3px 0 var(--ink); }
+  p { margin:0; line-height:1.5; font-size:clamp(12px,2.9vmin,17px); max-width:34em; }
+  button { font:inherit; font-weight:800; font-size:clamp(15px,3.6vmin,22px); padding:.6em 1.6em; border:3px solid var(--ink); border-radius:10px; background:var(--gold); color:var(--ink); box-shadow:0 4px 0 #8a6a1e; cursor:pointer; }
+  button:active { transform:translateY(3px); box-shadow:0 1px 0 #8a6a1e; }
+  #banner { position:absolute; left:0; right:0; top:34%; text-align:center; font-weight:900; font-size:clamp(22px,7vmin,46px); color:var(--gold); text-shadow:0 3px 0 var(--ink),0 0 14px rgba(255,194,60,.7); pointer-events:none; opacity:0; }
+  #banner.show { animation: pop 1.8s ease-out; }
+  @keyframes pop { 0%{opacity:0;transform:scale(.6)} 12%{opacity:1;transform:scale(1.1)} 22%{transform:scale(1)} 80%{opacity:1} 100%{opacity:0;transform:translateY(-12px)} }
+  #touch { position:absolute; inset:0; pointer-events:none; }
+  #fire { position:absolute; right:3%; bottom:8%; width:clamp(78px,24vmin,130px); height:clamp(78px,24vmin,130px); border-radius:50%; border:4px solid var(--ink); background:radial-gradient(circle at 35% 30%,#ff9a7a,var(--red) 60%,#8a1a24); color:#fff; font-weight:900; font-size:clamp(15px,4vmin,24px); display:none; align-items:center; justify-content:center; pointer-events:auto; box-shadow:0 5px 0 #4a0a14; }
+  #fire.down { transform:translateY(3px); box-shadow:0 2px 0 #4a0a14; }
+  #stick { position:absolute; width:96px; height:96px; margin:-48px 0 0 -48px; border-radius:50%; border:3px solid rgba(255,246,220,.5); background:rgba(255,246,220,.12); display:none; }
+  #stick b { position:absolute; left:50%; top:50%; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; background:rgba(255,246,220,.6); }
+  body.touch #fire { display:flex; }
+  .keys { opacity:.8; font-size:clamp(11px,2.5vmin,14px); }
+  kbd { border:2px solid var(--paper); border-radius:5px; padding:0 .4em; font-family:inherit; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c"></canvas>
+  <div class="hud">
+    <div><span id="score">0</span><small>점수 · 최고 <span id="best">0</span></small></div>
+    <div class="mid"><span id="wave">WAVE 1</span><small id="foes"></small></div>
+    <div class="right"><span id="lives"></span><small>대기 중인 경덕</small></div>
+  </div>
+  <div id="banner"></div>
+  <div id="touch"><div id="stick"><b></b></div><div id="fire">돌격!</div></div>
+  <div class="overlay" id="title">
+    <h1>경덕 특공대</h1>
+    <p>몰려오는 몬스터 한가운데로 뛰어들어 <b>펑!</b> 한 방에 쓸어버리세요.<br>많이 한꺼번에 터뜨릴수록 점수와 보너스가 커집니다. 터질 때마다 경덕이 한 명씩 사라지니 아껴 쓰세요!</p>
+    <p class="keys"><kbd>WASD</kbd> 이동 · 마우스로 조준 · <kbd>스페이스</kbd>/클릭 = 돌격, 돌격 중에 한 번 더 누르면 바로 폭발<br>폰: 왼쪽 화면을 끌어서 이동, <b>돌격!</b> 버튼 (자동 조준)</p>
+    <button id="start">출격!</button>
+  </div>
+  <div class="overlay" id="over" hidden>
+    <h2>전멸!</h2>
+    <p id="result"></p>
+    <button id="again">다시 출격</button>
+  </div>
+</div>
+<script type="module" src="./game.js"></script>
+</body>
+</html>
