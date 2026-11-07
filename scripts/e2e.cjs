@@ -76,17 +76,46 @@ async function run(name, ctxOpts, touch) {
   s = await info();
   console.log(`[${name}] 전투 중:`, JSON.stringify(s));
 
-  // 배치한 타워 선택 → 패널 확인
+  // 빌드 모드를 끝내고(카드를 다시 눌러 취소), 배치한 타워를 눌러 업그레이드/판매를 확인한다.
+  await page.waitForTimeout(8000);
+  await pointAt(page, PX + 88, 116 + 2 * 82, touch); // 파우스트 카드 토글(현재 선택돼 있으면 해제)
+  const mode = await page.evaluate(() => window.__td.scene.buildType);
+  if (mode) await pointAt(page, PX + 88, 116 + 2 * 82, touch);
   await pointAt(page, ...cell(4, 3), touch);
   await page.waitForTimeout(300);
+  const sel = await page.evaluate(() => ({ selected: !!window.__td.scene.selectedTower(), build: window.__td.scene.buildType }));
+  console.log(`[${name}] 타워 선택:`, JSON.stringify(sel));
   await page.screenshot({ path: `shots/${name}-select.png` });
+  await page.evaluate(() => { window.__td.sim.ahn = 500; });
+  await pointAt(page, PX + 88, 264, touch); // 업그레이드
+  s = await info();
+  const lvl = await page.evaluate(() => window.__td.sim.towers.find((t) => t.c === 4 && t.r === 3).level);
+  console.log(`[${name}] 업그레이드 후 레벨(2여야 함):`, lvl);
+  await pointAt(page, PX + 88, 312, touch); // 판매
+  s = await info();
+  console.log(`[${name}] 판매 후 타워 수(1이어야 함):`, s.towers);
+  if (!sel.selected || lvl !== 2 || s.towers !== 1) errors.push(`[${name}] 선택/업그레이드/판매 흐름 실패`);
 
+  await browser.close();
+}
+
+async function portrait() {
+  const browser = await chromium.launch();
+  const page = await (await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true })).newPage();
+  hook(page, 'portrait');
+  await page.goto(URL);
+  await page.waitForTimeout(800);
+  const shown = await page.evaluate(() => getComputedStyle(document.getElementById('rotate')).display);
+  console.log('[portrait] 가로 안내 표시:', shown);
+  if (shown !== 'flex') errors.push('[portrait] 가로 안내가 안 보임');
+  await page.screenshot({ path: 'shots/portrait.png' });
   await browser.close();
 }
 
 (async () => {
   await run('pc', { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 }, false);
   await run('mobile', { viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true }, true);
+  await portrait();
   console.log(errors.length ? `\n에러 ${errors.length}건:\n${errors.join('\n')}` : '\n콘솔 에러 없음');
   process.exit(errors.length ? 1 : 0);
 })();

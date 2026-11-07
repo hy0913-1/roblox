@@ -1,7 +1,9 @@
 // 화면/레이아웃 상수. 논리 해상도는 960x540(16:9)이고, 실제 캔버스는 RENDER_SCALE배로 그려서 선명하게 보이게 한다.
 export const W = 960;
 export const H = 540;
-export const RENDER_SCALE = 2;
+// ?q=1 로 접속하면 1배(저사양 기기용), 기본은 2배.
+const quality = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('q') : null;
+export const RENDER_SCALE = quality === '1' ? 1 : 2;
 
 export const CELL = 48;
 export const COLS = 16;

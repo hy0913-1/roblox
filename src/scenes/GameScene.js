@@ -4,6 +4,7 @@ import { Sim } from '../sim/Sim.js';
 import { spend } from '../sim/bot.js';
 import { TOWER_ORDER } from '../data/towers.js';
 import { Fx } from '../fx/Fx.js';
+import { PixelFx } from '../fx/PixelFx.js';
 import { Hud } from '../ui/Hud.js';
 import { setupCamera } from '../ui/widgets.js';
 import { sfx, unlock, isMuted, setMuted, startMusic, stopMusic } from '../audio/Sfx.js';
@@ -54,6 +55,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.drawMap();
     this.fx = new Fx(this, this.fxLayer);
+    this.pfx = new PixelFx(this, this.fxLayer);
 
     this.ghostSprite = this.add.image(0, 0, 'tower_yisang').setAlpha(0.65).setVisible(false);
     this.ghostSprite.setPosition(0, 0);
@@ -68,6 +70,7 @@ export default class GameScene extends Phaser.Scene {
     this.events.once('shutdown', () => {
       stopMusic();
       this.tweens.timeScale = 1;
+      this.anims.globalTimeScale = 1;
     });
     this.hud.showToast('수감자를 배치하고 웨이브를 시작하세요', COLORS.text);
   }
@@ -261,6 +264,7 @@ export default class GameScene extends Phaser.Scene {
     sfx.click();
     if (this.paused) {
       this.tweens.pauseAll();
+      this.anims.pauseAll();
       this.hud.showOverlay({
         title: '일시정지',
         buttons: [
@@ -271,6 +275,7 @@ export default class GameScene extends Phaser.Scene {
       });
     } else {
       this.tweens.resumeAll();
+      this.anims.resumeAll();
       this.hud.hideOverlay();
     }
   }
@@ -278,6 +283,7 @@ export default class GameScene extends Phaser.Scene {
   cycleSpeed() {
     this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length];
     this.tweens.timeScale = this.speed;
+    this.anims.globalTimeScale = this.speed;
     sfx.click();
   }
 
@@ -465,17 +471,25 @@ export default class GameScene extends Phaser.Scene {
           const col = PROJ_COLOR[e.kind] || 0xffffff;
           if (e.splash > 0) {
             this.fx.ring(e.x, e.y, e.splash, 0xd9b44a, 0.32);
-            this.fx.flashCircle(e.x, e.y, e.splash * 0.6, 0xffb060, 0.22);
-            this.fx.burst(e.x, e.y, 0xffb060, 10, 110, 0.4, 3);
+            // 폭발: 시트의 기준점이 폭발 중심이고, 반경에 맞춰 크기를 정한다.
+            if (!this.pfx.play('fx_blast', e.x, e.y, { scale: e.splash / 62 })) {
+              this.fx.flashCircle(e.x, e.y, e.splash * 0.6, 0xffb060, 0.22);
+              this.fx.burst(e.x, e.y, 0xffb060, 10, 110, 0.4, 3);
+            }
             sfx.boom();
           } else {
-            this.fx.burst(e.x, e.y, col, 5, 70, 0.22, 3);
+            const key = e.kind === 'orb' ? 'fx_hit_orb' : 'fx_hit_slash';
+            if (!this.pfx.play(key, e.x, e.y, { scale: 0.85, angle: e.dir })) this.fx.burst(e.x, e.y, col, 5, 70, 0.22, 3);
             sfx.hit();
           }
           break;
         }
         case 'kill':
-          this.fx.burst(e.x, e.y, e.type === 'boss' ? 0xd9b44a : 0xb89cff, e.type === 'boss' ? 28 : 10, e.type === 'boss' ? 160 : 90, 0.5, e.type === 'boss' ? 5 : 3);
+          if (e.type === 'boss') {
+            if (!this.pfx.play('fx_poof_boss', e.x, e.y + 10, { scale: 1.9 })) this.fx.burst(e.x, e.y, 0xd9b44a, 28, 160, 0.5, 5);
+          } else if (!this.pfx.play('fx_poof', e.x, e.y + 6, { scale: Math.max(0.5, e.size / 60) })) {
+            this.fx.burst(e.x, e.y, 0xb89cff, 10, 90, 0.5, 3);
+          }
           this.fx.floatText(e.x, e.y - 10, `+${e.reward}`);
           if (e.type === 'boss') this.fx.shake(300, 0.01);
           sfx.kill();
@@ -489,12 +503,12 @@ export default class GameScene extends Phaser.Scene {
         case 'build': {
           const t = e.tower;
           this.fx.ring(t.x, t.y, 30, 0xefe6c8, 0.28, 0.7);
-          this.fx.burst(t.x, t.y + 10, 0xefe6c8, 8, 50, 0.3, 2);
+          if (!this.pfx.play('fx_sparkle', t.x, t.y + 14, { scale: 0.5 })) this.fx.burst(t.x, t.y + 10, 0xefe6c8, 8, 50, 0.3, 2);
           break;
         }
         case 'upgrade':
           this.fx.ring(e.tower.x, e.tower.y, 34, COLORS.gold, 0.35);
-          this.fx.burst(e.tower.x, e.tower.y, COLORS.gold, 10, 80, 0.45, 3);
+          if (!this.pfx.play('fx_sparkle', e.tower.x, e.tower.y + 18, { scale: 0.8 })) this.fx.burst(e.tower.x, e.tower.y, COLORS.gold, 10, 80, 0.45, 3);
           break;
         case 'sell':
           this.fx.floatText(e.tower.x, e.tower.y - 14, `+${sim.sellValue(e.tower)}`);

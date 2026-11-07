@@ -308,7 +308,7 @@ export class Sim {
   }
 
   impact(p) {
-    this.emit('hit', { x: p.tx, y: p.ty, kind: p.kind, type: p.type, splash: p.splash });
+    this.emit('hit', { x: p.tx, y: p.ty, kind: p.kind, type: p.type, splash: p.splash, dir: p.dir || 0 });
     if (p.splash > 0) {
       for (const e of this.enemies) {
         if (e.alive && Math.hypot(e.x - p.tx, e.y - p.ty) <= p.splash + e.size * 0.25) this.damage(e, p.dmg, 0, 0);
