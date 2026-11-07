@@ -4,3 +4,5 @@ dist
 .DS_Store
 /shots
 dist-artifact
+card-duel/dist
+card-duel/shots

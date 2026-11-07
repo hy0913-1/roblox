@@ -10,7 +10,10 @@
     "preview": "vite preview --host",
     "balance": "node scripts/balance.mjs",
     "test": "node scripts/sim-test.mjs",
-    "build:artifact": "node scripts/build-artifact.mjs"
+    "build:artifact": "node scripts/build-artifact.mjs",
+    "card:test": "node card-duel/test/engine-test.mjs && node card-duel/test/logic-test.mjs",
+    "card:sim": "node card-duel/test/sim.mjs 60 && node card-duel/test/sim.mjs 30 team",
+    "card:build": "node card-duel/build.mjs"
   },
   "dependencies": {
     "phaser": "^4.2.1"
