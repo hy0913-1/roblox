@@ -2,11 +2,34 @@
 // 시트 파일이 없거나 못 불러오면 play()는 조용히 false를 돌려주고, 호출한 쪽이 기본 이펙트(Fx)로 대신한다.
 import Phaser from 'phaser';
 import { FX_SHEETS } from './fxSheets.js';
+import { EMBED } from '../env.js';
 
 export function preloadPixelFx(scene) {
+  if (EMBED) return; // 임베드 모드는 loadEmbeddedPixelFx 를 쓴다
   for (const s of FX_SHEETS) {
     scene.load.spritesheet(s.key, `assets/fx/${s.file}`, { frameWidth: s.frameW, frameHeight: s.frameH });
   }
+}
+
+// 단일 HTML(아티팩트) 모드: data: URI 이미지를 <img>로 읽어서 텍스처로 등록한다. (XHR/fetch를 쓰지 않는다)
+export function loadEmbeddedPixelFx(scene) {
+  const urls = (typeof window !== 'undefined' && window.__ASSET_URLS) || {};
+  return Promise.all(
+    FX_SHEETS.map(
+      (s) =>
+        new Promise((resolve) => {
+          const src = urls[s.file];
+          if (!src || scene.textures.exists(s.key)) return resolve();
+          const img = new Image();
+          img.onload = () => {
+            scene.textures.addSpriteSheet(s.key, img, { frameWidth: s.frameW, frameHeight: s.frameH });
+            resolve();
+          };
+          img.onerror = () => resolve(); // 못 읽으면 도형 이펙트로 대체된다
+          img.src = src;
+        })
+    )
+  );
 }
 
 export function createPixelFxAnims(scene) {

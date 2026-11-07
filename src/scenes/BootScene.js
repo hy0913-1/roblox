@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { IMAGE_OVERRIDES } from '../art/overrides.js';
 import { generateTextures, smoothOverrides } from '../art/textures.js';
-import { preloadPixelFx, createPixelFxAnims } from '../fx/PixelFx.js';
+import { preloadPixelFx, createPixelFxAnims, loadEmbeddedPixelFx } from '../fx/PixelFx.js';
+import { EMBED } from '../env.js';
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -17,7 +18,11 @@ export default class BootScene extends Phaser.Scene {
   create() {
     smoothOverrides(this, Object.keys(IMAGE_OVERRIDES));
     generateTextures(this);
-    createPixelFxAnims(this);
-    this.scene.start('menu');
+    const next = () => {
+      createPixelFxAnims(this);
+      this.scene.start('menu');
+    };
+    if (EMBED) loadEmbeddedPixelFx(this).then(next, next);
+    else next();
   }
 }

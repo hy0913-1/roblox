@@ -2,6 +2,7 @@ import { COLORS, W, H, PANEL_X, PANEL_W, COLS, CELL } from '../config.js';
 import { TOWER_ORDER, PRIORITY_NAMES } from '../data/towers.js';
 import { label, makeButton, setIfChanged } from './widgets.js';
 import { isMuted } from '../audio/Sfx.js';
+import { EMBED } from '../env.js';
 
 const PX = PANEL_X + 8; // 패널 안쪽 왼쪽 여백
 const PW = PANEL_W - 16;
@@ -44,7 +45,7 @@ export class Hud {
     this.speedBtn = makeButton(s, { x: W - 10 - 76 - 6 - 58, y, w: 58, h, label: 'x1', size: 16, onClick: () => s.cycleSpeed() });
     this.soundBtn = makeButton(s, { x: W - 10 - 76 - 6 - 58 - 6 - 66, y, w: 66, h, label: '소리 켬', size: 13, onClick: () => s.toggleMute() });
     this.fullBtn = null;
-    if (s.scale.fullscreen.available) {
+    if (!EMBED && s.scale.fullscreen.available) {
       this.fullBtn = makeButton(s, { x: W - 10 - 76 - 6 - 58 - 6 - 66 - 6 - 66, y, w: 66, h, label: '전체화면', size: 13, onClick: () => s.scale.toggleFullscreen() });
     }
   }
