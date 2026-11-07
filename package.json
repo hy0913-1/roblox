@@ -1,0 +1,20 @@
+{
+  "name": "limbus-defense-td",
+  "version": "0.1.0",
+  "private": true,
+  "description": "림버스 컴퍼니 비영리 팬게임 - 버스 방어전 (타워 디펜스)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "balance": "node scripts/balance.mjs",
+    "test": "node scripts/sim-test.mjs"
+  },
+  "dependencies": {
+    "phaser": "^4.2.1"
+  },
+  "devDependencies": {
+    "vite": "^8.0.0"
+  }
+}

@@ -1,0 +1,43 @@
+// 적 = 왜곡체. speed는 px/s, armor는 받는 피해에서 깎이는 고정값(최소 1 피해).
+export const ENEMIES = {
+  shade: {
+    id: 'shade',
+    name: '그림자',
+    hp: 40,
+    speed: 55,
+    armor: 0,
+    reward: 8,
+    leak: 1,
+    size: 36,
+  },
+  runner: {
+    id: 'runner',
+    name: '질주체',
+    hp: 26,
+    speed: 108,
+    armor: 0,
+    reward: 7,
+    leak: 1,
+    size: 34,
+  },
+  carapace: {
+    id: 'carapace',
+    name: '갑각체',
+    hp: 170,
+    speed: 38,
+    armor: 3,
+    reward: 18,
+    leak: 2,
+    size: 44,
+  },
+  boss: {
+    id: 'boss',
+    name: '거대 왜곡체',
+    hp: 2200,
+    speed: 28,
+    armor: 4,
+    reward: 150,
+    leak: 10,
+    size: 88,
+  },
+};
