@@ -6,3 +6,5 @@ dist
 dist-artifact
 card-duel/dist
 card-duel/shots
+ox-quiz/dist
+ox-quiz/shots

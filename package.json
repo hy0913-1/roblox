@@ -13,7 +13,10 @@
     "build:artifact": "node scripts/build-artifact.mjs",
     "card:test": "node card-duel/test/engine-test.mjs && node card-duel/test/logic-test.mjs",
     "card:sim": "node card-duel/test/sim.mjs 60 && node card-duel/test/sim.mjs 30 team",
-    "card:build": "node card-duel/build.mjs"
+    "card:build": "node card-duel/build.mjs",
+    "quiz:test": "node ox-quiz/test/game-test.mjs",
+    "quiz:build": "node ox-quiz/build.mjs",
+    "quiz:e2e": "node ox-quiz/test/e2e.cjs"
   },
   "dependencies": {
     "phaser": "^4.2.1"
