@@ -1,0 +1,16 @@
+/* 갈무리11 (한글·영문만 남긴 부분 글꼴) — Copyright (c) 2019–2025 Lee Minseo — SIL Open Font License 1.1, 전문은 fonts-license.txt */
+@font-face {
+  font-family: 'Galmuri11';
+  src: url('../assets/fonts/Galmuri11.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Galmuri11';
+  src: url('../assets/fonts/Galmuri11-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

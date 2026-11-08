@@ -128,6 +128,7 @@ export class HostGame {
       if (p.key === key) {
         p.peer = peer || p.peer;
         p.char = char;
+        if (name) p.name = name;
         p.gone = false;
         this.dirty = true;
         return p.pid;
@@ -374,7 +375,7 @@ export class HostGame {
       if (k !== prev) place = i + 1;
       prev = k;
       const pts = p.score + (p.alive ? POINTS.survive : 0) + (POINTS.place[place - 1] || 0);
-      return { pid: p.pid, place, pts, correct: p.correct, alive: p.alive, bot: p.bot, by: p.by, key: p.key };
+      return { pid: p.pid, place, pts, correct: p.correct, alive: p.alive, bot: p.bot, by: p.by, key: p.key, name: p.name || '' };
     });
     this.phase = 'end';
     this.dirty = true;
@@ -382,7 +383,7 @@ export class HostGame {
 
   // 공식전 기록용: 사람만
   results() {
-    return (this.ranking || []).filter((r) => !r.bot).map(({ by, key, place, pts, correct, alive }) => ({ by: by || null, key, place, pts, correct, alive }));
+    return (this.ranking || []).filter((r) => !r.bot).map(({ by, key, place, pts, correct, alive, name }) => ({ by: by || null, key, place, pts, correct, alive, name: name || '' }));
   }
 
   // ---------- 모두에게 보내는 상태 ----------

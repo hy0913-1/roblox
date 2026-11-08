@@ -16,12 +16,16 @@
     "card:build": "node card-duel/build.mjs",
     "quiz:test": "node ox-quiz/test/game-test.mjs",
     "quiz:build": "node ox-quiz/build.mjs",
-    "quiz:e2e": "node ox-quiz/test/e2e.cjs"
+    "quiz:e2e": "node ox-quiz/test/e2e.cjs",
+    "quiz:web": "node ox-quiz/build-web.mjs",
+    "quiz:e2e:web": "node ox-quiz/test/e2e-web.cjs"
   },
   "dependencies": {
+    "peerjs": "^1.5.5",
     "phaser": "^4.2.1"
   },
   "devDependencies": {
+    "peer": "^1.0.2",
     "vite": "^8.0.0"
   }
 }

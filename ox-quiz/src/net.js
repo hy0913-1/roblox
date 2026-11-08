@@ -79,6 +79,7 @@ export function buildView(snap, { myKey, liveSides, mySide, myPid }) {
     me,
     fx: snap.fx || [],
     tl: snap.tl,
+    lb: snap.lb || null,
   };
 }
 
@@ -93,7 +94,9 @@ class RoomBase {
   }
 
   async join() {
-    this.nr = await this.room.join(`q-${this.code}`);
+    const name = `q-${this.code}`;
+    // 웹(P2P)판은 방장/참가자를 구분해서 연결한다. 클로드 room은 이름만 받는다
+    this.nr = this.room.webRoom ? await this.room.join(name, { client: this.role === 'player' }) : await this.room.join(name);
     this.unsub = this.nr.onPeers(
       (ch) => {
         this.peers = ch.peers;
@@ -131,13 +134,14 @@ export class HostClient extends RoomBase {
     this.role = opts.mc ? 'mc' : 'host';
     this.official = !!opts.official;
     this.char = opts.char | 0;
+    this.extra = opts.extra || null; // 진행자 presence에 덧붙일 것(웹판 순위표)
     this.game = new HostGame({ code: opts.code, official: opts.official, title: opts.title, bank: opts.bank, used: opts.used, settings: opts.settings, seed: (Math.random() * 0xffffffff) >>> 0 });
     this.events = [];
     this.lastPub = 0;
     this.selfMv = 0;
     this.selfSk = 0;
     this.selfEm = 0;
-    if (!opts.mc) this.myPid = this.game.addPlayer({ key: opts.me.id || 'host', by: opts.me.id || null, peer: null, char: this.char });
+    if (!opts.mc) this.myPid = this.game.addPlayer({ key: opts.me.id || 'host', by: opts.me.id || null, peer: null, char: this.char, name: opts.me.name || '' });
   }
 
   async start() {
@@ -157,9 +161,10 @@ export class HostClient extends RoomBase {
       present.add(key);
       let pl = g.byKey(key);
       if (!pl && g.phase === 'wait') {
-        g.addPlayer({ key, by: p.by || null, peer: p.peer, char: pr.ch | 0 });
+        g.addPlayer({ key, by: p.by || null, peer: p.peer, char: pr.ch | 0, name: p.name || '' });
         pl = g.byKey(key);
       }
+      if (pl && p.name && pl.name !== p.name && !pl.bot) pl.name = p.name;
       if (!pl) continue;
       if (g.phase === 'wait' && pl.char !== (pr.ch | 0)) {
         pl.char = pr.ch | 0;
@@ -195,7 +200,7 @@ export class HostClient extends RoomBase {
     this.game.dirty = false;
     this.snap = this.game.snapshot(now);
     this.snapAt = performance.now();
-    this.nr.presence({ app: HOST, v: VERSION, code: this.code, ...this.snap }).catch(() => {});
+    this.nr.presence({ app: HOST, v: VERSION, code: this.code, ...this.snap, ...(this.extra ? this.extra() : {}) }).catch(() => {});
     this.hooks.onPublish && this.hooks.onPublish(this.game);
   }
 
@@ -244,7 +249,9 @@ export class PlayerClient extends RoomBase {
   constructor(opts) {
     super(opts);
     this.role = 'player';
-    this.state = { app: PLAYER, v: VERSION, code: opts.code, ch: opts.char | 0, sd: '', mv: 0, sk: null, em: null };
+    // 이동·스킬·이모트 번호는 지금 시각에서 시작: 새로고침하고 다시 들어와도 진행자가 옛 번호보다 큰 것으로 받아 준다
+    this.seq0 = Date.now();
+    this.state = { app: PLAYER, v: VERSION, code: opts.code, ch: opts.char | 0, sd: '', mv: this.seq0, sk: null, em: null };
     this.snap = null;
     this.hostSeenAt = 0;
     this.lastKey = '';
@@ -318,13 +325,13 @@ export class PlayerClient extends RoomBase {
   }
 
   skill(id, to) {
-    const n = ((this.state.sk && this.state.sk.n) || 0) + 1;
+    const n = ((this.state.sk && this.state.sk.n) || this.seq0) + 1;
     this.state.sk = { n, id, to, r: this.snap ? this.snap.rd : 0 };
     this.push();
   }
 
   emote(e) {
-    const n = ((this.state.em && this.state.em.n) || 0) + 1;
+    const n = ((this.state.em && this.state.em.n) || this.seq0) + 1;
     this.state.em = { n, e };
     this.push();
   }

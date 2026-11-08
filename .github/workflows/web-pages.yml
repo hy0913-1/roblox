@@ -1,0 +1,50 @@
+# OX 도트 대난투 웹판을 GitHub Pages에 올린다.
+# 처음 한 번: 저장소 Settings → Pages → Build and deployment → Source를 "GitHub Actions"로.
+# 그다음부터는 main에 합쳐질 때마다 자동으로 다시 올라간다(Actions 탭에서 손으로 돌릴 수도 있음).
+name: 웹게임 배포 (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ox-quiz/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/web-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run quiz:test
+      - run: npm run quiz:web
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ox-quiz/dist-web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

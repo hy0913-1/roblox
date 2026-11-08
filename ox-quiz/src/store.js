@@ -73,7 +73,11 @@ export class QuizStore {
       if (!sid || r.season !== sid) continue;
       for (const row of r.rows || []) {
         if (!row.by) continue;
-        const s = by.get(row.by) || { by: row.by, pts: 0, games: 0, wins: 0, correct: 0 };
+        const s = by.get(row.by) || { by: row.by, name: '', pts: 0, games: 0, wins: 0, correct: 0, at: 0 };
+        if (row.name && (r.at || 0) >= s.at) {
+          s.name = row.name;
+          s.at = r.at || 0;
+        }
         s.pts += row.pts | 0;
         s.games += 1;
         s.correct += row.correct | 0;

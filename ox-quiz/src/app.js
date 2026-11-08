@@ -55,9 +55,15 @@ const randCode = () => Math.random().toString(36).slice(2, 8);
 // O/X 도트 마크. colored=false면 흰색(색 버튼 위)
 const mark = (s, colored = true, cls = '') => `<i class="mk mk-${s === 'O' ? 'o' : 'x'}${colored ? '-c' : ''} ${cls}" role="img" aria-label="${s}"></i>`;
 
+export const MARK = mark;
+export { lget, lset, randCode };
+
+// 화면 전체. opts.connect: 플랫폼 연결(클로드 아티팩트 기본), opts.web: 웹(P2P)판
 export class App {
-  constructor(root) {
+  constructor(root, opts = {}) {
     this.root = root;
+    this.connect = opts.connect || connectPlatform;
+    this.web = !!opts.web;
     this.screen = 'loading';
     this.profiles = {};
     this.client = null;
@@ -66,12 +72,12 @@ export class App {
 
   async boot() {
     this.root.innerHTML = '<section class="wait"><p class="blink">불러오는 중…</p></section>';
-    this.plat = await connectPlatform();
+    this.plat = await this.connect();
     this.me = this.plat.me;
     this.char = lget('ox-char', Math.floor(Math.random() * CHARS.length));
     this.store = new QuizStore(this.plat, () => this.onData());
     this.store.start();
-    if (this.plat.room) {
+    if (this.plat.room && !this.web) {
       this.lobby = new Lobby(this.plat.room, { onChange: () => this.onLobby() });
       this.lobby.state.ch = this.char;
       this.lobby.start();
@@ -103,14 +109,16 @@ export class App {
   refreshProfiles(ids) {
     const user = this.plat.user;
     if (!user) return;
-    const need = [...new Set(ids.filter((id) => id && !this.profiles[id]))];
+    // 이름을 못 찾은 사람은 몇 초 뒤 다시 물어본다
+    const now = Date.now();
+    const stale = (id) => !this.profiles[id] || (!this.profiles[id].name && now - (this.profiles[id].at || 0) > 4000);
+    const need = [...new Set(ids.filter((id) => id && stale(id)))];
     if (!need.length || this.profBusy) return;
     this.profBusy = true;
     user
       .profiles(need)
       .then((ps) => {
-        Object.assign(this.profiles, ps);
-        for (const id of need) if (!this.profiles[id]) this.profiles[id] = { name: '' };
+        for (const id of need) this.profiles[id] = ps && ps[id] && ps[id].name ? ps[id] : { name: '', at: Date.now() };
       })
       .catch(() => {})
       .finally(() => {
@@ -178,22 +186,35 @@ export class App {
         <div class="col">
           <article class="panel">
             <h2>순위표 ${season ? `<small>${esc(season.title)}</small>` : ''}</h2>
-            ${!this.store.loaded && this.plat.db ? `<p class="muted">${this.store.slow ? '순위표를 아직 불러오지 못했어요. 잠시 뒤 다시 열어 보세요.' : '순위표를 불러오는 중…'}</p>` : rows.length ? `<div class="tablewrap"><table class="rank"><thead><tr><th>순위</th><th>이름</th><th>점수</th><th>공식전</th><th>1등</th></tr></thead><tbody>${rows.map((r) => `<tr class="${r.by === this.me.id ? 'me' : ''}"><td>${r.rank}</td><td>${esc(this.nameOf(r.by))}</td><td class="pts">${r.pts}</td><td>${r.games}</td><td>${r.wins}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">아직 공식전 기록이 없어요. 주최자가 공식전을 열면 여기에 쌓여요.</p>'}
-            <p class="fine">공식전 점수 = 정답 ${POINTS.correct}점(3연속부터 +${POINTS.streak}) + 끝까지 생존 ${POINTS.survive}점 + 1·2·3등 ${POINTS.place.join('·')}점</p>
+            ${!this.store.loaded && this.plat.db ? `<p class="muted">${this.store.slow ? '순위표를 아직 불러오지 못했어요. 잠시 뒤 다시 열어 보세요.' : '순위표를 불러오는 중…'}</p>` : rows.length ? this.boardHtml(rows) : '<p class="muted">아직 공식전 기록이 없어요. 주최자가 공식전을 열면 여기에 쌓여요.</p>'}
+            ${this.pointsHtml()}
           </article>
-          <details class="panel rules" open>
+          ${this.rulesHtml()}
+        </div>
+      </div>
+    </section>`;
+  }
+
+  // 순위표 표. rows: [{by, name?, pts, games, wins, rank}]
+  boardHtml(rows) {
+    return `<div class="tablewrap"><table class="rank"><thead><tr><th>순위</th><th>이름</th><th>점수</th><th>공식전</th><th>1등</th></tr></thead><tbody>${rows.map((r) => `<tr class="${r.by === this.me.id ? 'me' : ''}"><td>${r.rank}</td><td>${esc(r.name || this.nameOf(r.by))}</td><td class="pts">${r.pts}</td><td>${r.games}</td><td>${r.wins}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  pointsHtml() {
+    return `<p class="fine">공식전 점수 = 정답 ${POINTS.correct}점(3연속부터 +${POINTS.streak}) + 끝까지 생존 ${POINTS.survive}점 + 1·2·3등 ${POINTS.place.join('·')}점</p>`;
+  }
+
+  rulesHtml() {
+    return `<details class="panel rules" open>
             <summary><h2>게임 방법</h2></summary>
             <ul>
               <li>문제가 나오면 <b>O</b> 또는 <b>X</b> 구역으로 이동하세요. 시간 안에는 몇 번이든 바꿀 수 있어요.</li>
               <li>틀리면 바닥이 열리고 하트를 하나 잃어요. 하트가 0이면 탈락! 전원이 틀리면 그 문제는 없던 걸로 해요.</li>
               <li>맞히면 에너지 <i class="bt" aria-hidden="true"></i>+1 (최대 ${LIMITS.maxEnergy}). 에너지로 스킬을 써서 친구를 방해하세요. 한 문제에 스킬 한 번.</li>
-              <li>PC: ← / → 또는 O / X 키로 이동, 숫자 1~6으로 스킬.</li>
+              <li>PC: ← / → 또는 O / X 키로 이동, 숫자 1~6으로 스킬. 폰: 스킬을 누른 뒤 무대의 캐릭터나 아래 이름을 눌러 대상 선택.</li>
             </ul>
             <div class="skilllist">${SKILL_ORDER.map((k) => `<p><img src="${iconURL(k, 3)}" width="24" height="24" alt=""><b>${SKILLS[k].name}</b> <span class="cost"><i class="bt" aria-hidden="true"></i>${SKILLS[k].cost}</span> ${esc(SKILLS[k].desc)}</p>`).join('')}</div>
-          </details>
-        </div>
-      </div>
-    </section>`;
+          </details>`;
   }
 
   // ---------- 클릭/키 ----------
@@ -272,26 +293,62 @@ export class App {
   }
 
   // ---------- 방 열기/참가 ----------
+  newCode() {
+    return randCode();
+  }
+
+  // 방 코드가 이미 쓰이고 있으면(웹판) 새 코드로 몇 번 다시 시도한다
+  async startHostClient(make) {
+    for (let i = 0; i < 4; i++) {
+      const client = make(this.newCode());
+      try {
+        await client.start();
+        return client;
+      } catch (e) {
+        await client.leave().catch(() => {});
+        if (e && e.code === 'taken') continue;
+        toast(this.netError(e, '방을 만들지 못했어요'), true);
+        return null;
+      }
+    }
+    toast('방을 만들지 못했어요. 다시 눌러 주세요', true);
+    return null;
+  }
+
+  netError(e, fallback) {
+    const code = e && e.code;
+    if (code === 'not_found') return '그 코드의 방이 없어요. 코드를 다시 확인해 주세요';
+    if (code === 'network') return '연결 서버에 닿지 않아요. 인터넷 연결을 확인해 주세요';
+    if (code === 'timeout') return '방에 연결하지 못했어요. 와이파이나 데이터를 바꿔 다시 해 보세요';
+    if (code === 'full') return '방이 꽉 찼어요';
+    if (code === 'unsupported') return '이 브라우저에서는 대전을 할 수 없어요';
+    return fallback;
+  }
+
+  // 공식전 진행자가 presence에 덧붙일 것(웹판에서 순위표를 보냄)
+  officialExtra() {
+    return null;
+  }
+
   async openHost({ practice = false }) {
     if (this.client) return;
-    const room = this.plat.room || offlineRoom();
-    const client = new HostClient({
-      room,
-      code: randCode(),
-      me: this.me,
-      char: this.char,
-      title: practice ? '혼자 연습' : `${this.me.name || '친구'}의 방`,
-      bank: PUBLIC_BANK,
-      settings: practice ? { total: 10, lives: 3, askMs: 10000 } : undefined,
-      hooks: this.roomHooks(),
-    });
+    // 혼자 연습은 네트워크 없이 이 화면 안에서만 돈다
+    const room = practice || !this.plat.room ? offlineRoom() : this.plat.room;
+    const client = await this.startHostClient(
+      (code) =>
+        new HostClient({
+          room,
+          code,
+          me: this.me,
+          char: this.char,
+          title: practice ? '혼자 연습' : `${this.me.name || '친구'}의 방`,
+          bank: PUBLIC_BANK,
+          settings: practice ? { total: 10, lives: 3, askMs: 10000 } : undefined,
+          hooks: this.roomHooks(),
+        }),
+    );
+    if (!client) return;
     if (practice) for (let i = 0; i < 4; i++) client.game.addBot();
-    try {
-      await client.start();
-    } catch {
-      toast('방을 만들지 못했어요', true);
-      return;
-    }
     this.enterRoom(client, practice ? null : { off: 0 });
     if (practice) setTimeout(() => client.game.start(Date.now()) && client.publish(true), 600);
   }
@@ -306,30 +363,30 @@ export class App {
       return;
     }
     const season = await this.store.ensureSeason().catch(() => null);
-    const client = new HostClient({
-      room: this.plat.room,
-      code: randCode(),
-      me: this.me,
-      mc: true,
-      official: true,
-      title: `공식전 #${this.store.matchesThisSeason().length + 1}`,
-      bank: list,
-      used: new Set((season && season.used) || []),
-      hooks: {
-        ...this.roomHooks(),
-        onOfficialEnd: (game) =>
-          this.store.recordResult(game).then(
-            (n) => toast(`공식전 결과를 순위표에 기록했어요 (${n}명)`),
-            () => toast('결과를 기록하지 못했어요', true),
-          ),
-      },
-    });
-    try {
-      await client.start();
-    } catch {
-      toast('방을 만들지 못했어요', true);
-      return;
-    }
+    const extra = this.officialExtra();
+    const client = await this.startHostClient(
+      (code) =>
+        new HostClient({
+          room: this.plat.room,
+          code,
+          me: this.me,
+          mc: true,
+          official: true,
+          title: `공식전 #${this.store.matchesThisSeason().length + 1}`,
+          bank: list,
+          used: new Set((season && season.used) || []),
+          extra,
+          hooks: {
+            ...this.roomHooks(),
+            onOfficialEnd: (game) =>
+              this.store.recordResult(game).then(
+                (n) => toast(`공식전 결과를 순위표에 기록했어요 (${n}명)`),
+                () => toast('결과를 기록하지 못했어요', true),
+              ),
+          },
+        }),
+    );
+    if (!client) return;
     this.bankInfo = { total: list.length, fresh: list.filter((q) => !client.game.used.has(q.id)).length };
     this.enterRoom(client, { off: 1 });
   }
@@ -337,20 +394,25 @@ export class App {
   async joinRoom(code) {
     if (this.client) return;
     const client = new PlayerClient({ room: this.plat.room, code, me: this.me, char: this.char, hooks: this.roomHooks() });
+    this.client = client; // 연결 중 두 번 누르기 방지
     try {
       await client.start();
-    } catch {
-      toast('방에 들어가지 못했어요', true);
-      return;
+    } catch (e) {
+      this.client = null;
+      await client.leave().catch(() => {});
+      toast(this.netError(e, '방에 들어가지 못했어요'), true);
+      return false;
     }
+    this.client = null;
     this.enterRoom(client, null);
+    return true;
   }
 
   roomHooks() {
     return {
       onUpdate: () => this.scheduleRoom(),
       onClosed: (why) => {
-        toast(why === 'host_left' ? '진행자가 나가서 방이 닫혔어요' : '방 연결이 끊겼어요', true);
+        toast(why === 'host_left' ? '진행자가 나가서 방이 닫혔어요' : why === 'full' ? '방이 꽉 찼어요' : '방 연결이 끊겼어요', true);
         this.leaveRoom();
       },
       onPublish: (game) => {
@@ -376,6 +438,7 @@ export class App {
     this.screen = 'room';
     this.root.innerHTML = `<section class="room">
       <div class="rtop"><button type="button" class="pbtn small" data-act="leave">나가기</button><b class="rtitle"></b><span class="rinfo"></span><span class="mystat"></span></div>
+      <div class="share" hidden></div>
       <div class="timer"><i></i></div>
       <div class="stagewrap"><canvas id="stage" aria-label="O X 무대"></canvas></div>
       <div class="qbox" aria-live="polite"></div>
@@ -383,6 +446,7 @@ export class App {
       <div class="skills"></div>
       <div class="emotes">${EMOTES.map((e) => `<button type="button" class="pbtn small" data-act="emote" data-e="${esc(e)}">${esc(e)}</button>`).join('')}</div>
       <div class="chips"></div>
+      <div class="lbbox"></div>
     </section>`;
     this.stage = new Stage(document.getElementById('stage'));
     this.stage.start();
@@ -432,6 +496,7 @@ export class App {
     this.keepAwake(false);
     if (c) await c.leave();
     if (this.lobby) this.lobby.set({ st: 'lobby', rm: null });
+    this.afterLeave();
     this.go('lobby');
   }
 
@@ -481,7 +546,13 @@ export class App {
     this.renderCtrl(v, force);
     this.renderSkills(v, force);
     this.renderChips(v, force);
+    this.renderRoomExtras(v, force);
   }
+
+  // 웹판이 방 코드 공유·순위표를 그린다
+  renderRoomExtras() {}
+
+  afterLeave() {}
 
   onPhase(v) {
     const me = v.me;

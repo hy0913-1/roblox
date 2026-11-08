@@ -232,3 +232,14 @@ export function charURL(i, scale = 3) {
   if (!urls.has(k)) urls.set(k, charCanvas(i, scale).toDataURL());
   return urls.get(k);
 }
+
+// CSS에서 쓰는 도트 아이콘(하트/에너지/O·X 마크)을 변수로 넣는다
+export function installCssIcons(root = document.documentElement) {
+  root.style.setProperty('--ic-bolt', `url(${iconURL('bolt', 2)})`);
+  root.style.setProperty('--ic-heart', `url(${iconURL('heart', 2)})`);
+  root.style.setProperty('--ic-heart-empty', `url(${iconURL('heartEmpty', 2)})`);
+  root.style.setProperty('--mk-o', `url(${markURL('O', '#ffffff')})`);
+  root.style.setProperty('--mk-x', `url(${markURL('X', '#ffffff')})`);
+  root.style.setProperty('--mk-o-c', `url(${markURL('O', '#6c9cf0')})`);
+  root.style.setProperty('--mk-x-c', `url(${markURL('X', '#f07a83')})`);
+}
