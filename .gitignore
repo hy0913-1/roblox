@@ -1,0 +1,11 @@
+node_modules
+dist
+*.log
+.DS_Store
+/shots
+dist-artifact
+card-duel/dist
+card-duel/shots
+ox-quiz/dist
+ox-quiz/shots
+ox-quiz/dist-web
