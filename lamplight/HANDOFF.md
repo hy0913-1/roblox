@@ -14,7 +14,7 @@
 ## 재활용할 코드 (저장소 main 이후 브랜치에 있음)
 - `bald-rpg/src/game.js` 이동·충돌·전투·카메라·그리기 루프, `maps.js` 타일맵과 코드로 그리는 배경, `hero.js` 뼈대 캐릭터에 옷 입히기, `sprites.js` 이펙트를 프레임으로 굽기, `art.js` 직접 그리는 도트, `audio.js` WebAudio 효과음·음악, `main.js` HUD·대화창·터치 버튼, `style.css`, `build.mjs`(아티팩트 한 파일 빌드).
 - pixelfx는 `bald-rpg/vendor/pixelfx`(MIT, rig.js에 part/tone 출력을 두 줄 추가함). 갈무리11 글꼴(OFL)은 `bald-rpg/assets`.
-- 이 폴더(`lamplight/`)에는 위 파일 일부가 복사만 돼 있고 아직 커밋하지 않았다.
+- `lamplight/`는 아직 비어 있다. 시작할 때 위 파일들을 `bald-rpg/`에서 복사해서 쓴다.
 - 테스트 패턴: `bald-rpg/test/flow.cjs`(처음부터 엔딩까지), `smoke.cjs`, `tour.cjs`(폰 화면 포함). 화면은 직접 찍어서 눈으로 확인.
 
 ## 겪은 함정
