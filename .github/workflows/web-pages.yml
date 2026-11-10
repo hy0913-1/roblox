@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - 'ox-quiz/**'
+      - 'bari-vn/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/web-pages.yml'
@@ -53,6 +54,8 @@ jobs:
       - run: npm ci
       - run: npm run quiz:test
       - run: npm run quiz:web
+      # 바리 비주얼 노벨은 빌드가 필요 없는 정적 파일이라 그대로 /bari-vn/ 아래에 얹는다
+      - run: mkdir -p ox-quiz/dist-web/bari-vn && cp -r bari-vn/index.html bari-vn/assets ox-quiz/dist-web/bari-vn/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

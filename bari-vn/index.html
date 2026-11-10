@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!--HEAD-->
+<title>하얀 달의 닷새</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap">
+<style>
+/* 배치: 한 화면짜리 무대. 배경 → 인물 → 아래 대사창, 위에는 얇은 머리띠. 밤과 강물의 한 가지 색조로만 간다(단일 테마). */
+:root {
+  color-scheme: dark;
+  --ink: #0a1020;         /* 밤하늘 바탕 */
+  --ink-2: #131c33;       /* 대사창·판 */
+  --line: #2c3a5e;        /* 테두리 */
+  --moon: #eef2f8;        /* 본문 글자, 하얀 달 */
+  --mist: #9aa8c4;        /* 보조 글자 */
+  --river: #5b9be6;       /* 바리의 푸른색, 강조 */
+  --petal: #f0b8c4;       /* 호감 꽃잎 */
+  --font-story: "Gowun Batang", "Noto Serif KR", "Batang", serif;
+  --font-ui: "Gowun Dodum", "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--ink); color: var(--moon); font-family: var(--font-ui); font-size: 16px; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--river); outline-offset: 2px; }
+
+#stage { position: relative; height: 100%; max-width: 1200px; margin: 0 auto; overflow: hidden; background: var(--ink); user-select: none; -webkit-user-select: none; }
+#bg, #bg > * { position: absolute; inset: 0; width: 100%; height: 100%; }
+#bg img { object-fit: cover; }
+#bg { transition: opacity .45s; }
+#sprite { position: absolute; left: 50%; bottom: 0; height: 92%; aspect-ratio: 4 / 7; transform: translateX(-50%); transition: opacity .35s, transform .35s; pointer-events: none; }
+#sprite.off { opacity: 0; transform: translateX(-50%) translateY(12px); }
+#sprite > * { width: 100%; height: 100%; display: block; }
+#sprite img { object-fit: contain; object-position: bottom; }
+
+.gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+#top { position: absolute; inset: 0 0 auto 0; display: flex; align-items: center; gap: 12px; padding-block: 10px; background: linear-gradient(var(--ink), transparent); font-size: 14px; }
+#chapter { color: var(--mist); min-width: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#aff { display: flex; align-items: center; gap: 3px; color: var(--mist); }
+#aff i { width: 11px; height: 11px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 1px solid var(--petal); opacity: .45; transition: all .4s; }
+#aff i.on { background: var(--petal); opacity: 1; }
+.tbtn { background: none; border: 1px solid var(--line); border-radius: 3px; padding: 5px 10px; color: var(--mist); }
+.tbtn:hover { color: var(--moon); border-color: var(--river); }
+
+#dialog { position: absolute; inset: auto 0 0 0; padding-block: 0 16px; }
+#box { position: relative; max-width: 860px; margin: 0 auto; min-height: 132px; box-sizing: border-box; padding: 26px 22px 30px; background: color-mix(in srgb, var(--ink-2) 90%, transparent); border: 1px solid var(--line); border-top: 2px solid var(--river); cursor: pointer; }
+#who { position: absolute; top: -17px; left: 18px; padding: 3px 14px; background: var(--river); color: var(--ink); font-family: var(--font-story); font-weight: 700; font-size: 15px; }
+#text { font-family: var(--font-story); font-size: clamp(16px, 2.3vw, 19px); line-height: 1.8; white-space: pre-wrap; word-break: keep-all; }
+#text.narr { color: var(--mist); }
+#text.think { font-style: italic; }
+#next { position: absolute; right: 16px; bottom: 9px; color: var(--river); font-size: 12px; animation: bob 1.1s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(4px); } }
+
+#choices { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; background: color-mix(in srgb, var(--ink) 55%, transparent); }
+#choices button { width: min(100%, 560px); padding: 14px 18px; text-align: left; font-family: var(--font-story); font-size: 16px; line-height: 1.5; word-break: keep-all; background: var(--ink-2); border: 1px solid var(--line); border-left: 3px solid var(--river); }
+#choices button:hover { border-color: var(--river); background: var(--line); }
+
+.cover { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding-block: 24px; background: color-mix(in srgb, var(--ink) 80%, transparent); overflow-y: auto; }
+#card { cursor: pointer; background: var(--ink); }
+#card small { color: var(--river); letter-spacing: .3em; }
+#card h2, #end h2 { margin: 0; font-family: var(--font-story); font-size: clamp(26px, 5vw, 40px); font-weight: 700; text-wrap: balance; }
+#title h1 { margin: 0; font-family: var(--font-story); font-size: clamp(34px, 8vw, 64px); font-weight: 700; letter-spacing: .04em; text-shadow: 0 0 30px color-mix(in srgb, var(--moon) 45%, transparent); }
+#title .sub { color: var(--river); letter-spacing: .25em; font-size: 13px; }
+#title p, #end p { margin: 0; max-width: 34em; color: var(--mist); font-size: 13px; line-height: 1.7; word-break: keep-all; }
+#title label { color: var(--mist); font-size: 13px; display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+#name { font: inherit; font-size: 16px; text-align: center; color: var(--moon); background: var(--ink-2); border: 1px solid var(--line); padding: 9px; width: 200px; }
+.big { min-width: 200px; padding: 12px 20px; font-family: var(--font-story); font-size: 17px; background: var(--river); color: var(--ink); border: 0; font-weight: 700; }
+.big.ghost { background: none; color: var(--moon); border: 1px solid var(--line); font-weight: 400; }
+.big:hover { filter: brightness(1.12); }
+#end small { color: var(--petal); letter-spacing: .3em; }
+
+#log { align-items: stretch; justify-content: flex-start; text-align: left; background: var(--ink); }
+#log header { display: flex; justify-content: space-between; align-items: center; }
+#logbody { max-width: 760px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; font-family: var(--font-story); line-height: 1.7; }
+#logbody b { color: var(--river); margin-right: 8px; }
+#logbody div.n { color: var(--mist); }
+#toast { position: absolute; top: 52px; left: 50%; transform: translateX(-50%); padding: 6px 14px; font-size: 13px; color: var(--petal); background: var(--ink-2); border: 1px solid var(--petal); opacity: 0; transition: opacity .4s; pointer-events: none; white-space: nowrap; }
+#toast.on { opacity: 1; }
+@media (max-width: 600px) { #sprite { height: 80%; bottom: 60px; } #box { min-height: 150px; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+<!--/HEAD-->
+</head>
+<body>
+<!--BODY-->
+<div id="stage">
+  <div id="bg"></div>
+  <div id="sprite" class="off"></div>
+
+  <div id="top" class="gutter" hidden>
+    <span id="chapter"></span>
+    <span id="aff" title="호감도"><i></i><i></i><i></i><i></i><i></i></span>
+    <button class="tbtn" id="btn-log" type="button">기록</button>
+    <button class="tbtn" id="btn-snd" type="button">소리 켬</button>
+    <button class="tbtn" id="btn-home" type="button">처음으로</button>
+  </div>
+  <div id="toast"></div>
+
+  <div id="dialog" class="gutter" hidden>
+    <div id="box" role="button" tabindex="0" aria-label="다음 대사">
+      <span id="who"></span>
+      <div id="text"></div>
+      <span id="next">▼</span>
+    </div>
+  </div>
+
+  <div id="choices" class="gutter" hidden></div>
+
+  <div id="card" class="cover gutter" hidden><small id="card-a"></small><h2 id="card-b"></h2></div>
+
+  <div id="end" class="cover gutter" hidden>
+    <small id="end-a"></small><h2 id="end-b"></h2><p id="end-c"></p>
+    <button class="big" id="btn-again" type="button">처음으로</button>
+  </div>
+
+  <div id="log" class="cover gutter" hidden>
+    <header><strong>지난 대화</strong><button class="tbtn" id="btn-logx" type="button">닫기</button></header>
+    <div id="logbody"></div>
+  </div>
+
+  <div id="title" class="cover gutter">
+    <span class="sub">바리 팬 비주얼 노벨</span>
+    <h1>하얀 달의 닷새</h1>
+    <p>신입 직원인 당신에게 닷새짜리 안내 업무가 떨어졌습니다. 상대는 꽃을 찾아 강을 따라 걷는 해결사, 바리.</p>
+    <label for="name">당신의 이름<input id="name" maxlength="8" value="신입" autocomplete="off"></label>
+    <button class="big" id="btn-start" type="button">처음부터</button>
+    <button class="big ghost" id="btn-cont" type="button" hidden>이어하기</button>
+    <p id="seen"></p>
+    <p>Project Moon과 무관한 비영리 팬 제작물입니다. 원작의 모든 권리는 원저작권자에게 있습니다. 이야기는 창작이며 「림버스 컴퍼니」 7장의 내용을 약하게 암시합니다.</p>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ───────── 이야기 ─────────
+   ['N',글]            지문          ['M',글]  나(괄호로 시작하면 속마음)
+   ['B',표정,글]       바리          ['O',이름,글]  그 밖의 인물
+   ['bg',이름] ['show'] ['hide']     ['chapter',작은 제목,큰 제목]
+   ['C',[[글,호감,라벨],…]] 선택지   ['L',라벨] ['J',라벨] ['route'] ['end',키]
+   표정: normal smile happy smug serious surprised shy sad */
+const STORY = [
+  ['bg','office'], ['hide'], ['chapter','여는 글','교정 담당의 새 업무'],
+  ['N','림버스 컴퍼니 본사. 서류 냄새가 가시지 않는 사무실.'],
+  ['N','입사 삼 주 차. 내 일은 남이 쓴 보고서의 오탈자를 고치는 것이었다. 오늘 아침까지는.'],
+  ['O','선배','{name} 씨, 오늘부터 닷새 동안 외부 영입 해결사 안내 맡아. 도시 적응 지원이래.'],
+  ['M','제가요? 저는 교정 담당인데요.'],
+  ['O','선배','그러니까 맡기는 거야. 그 사람, 서류란 서류는 전부 편지처럼 써 온대.'],
+  ['N','선배가 내민 인사 파일에는 이름 두 글자와 별칭 한 줄뿐이었다.'],
+  ['N','바리. 하얀 달의 기사.'],
+
+  ['chapter','첫째 날','꽃을 찾는 나그네'],
+  ['N','로비 창가에 키 큰 사람이 서 있었다. 푸른 외투, 허리에는 칼이 두 자루.'],
+  ['show'],
+  ['B','normal','자네가 안내를 맡은 직원인가. 반갑네.'],
+  ['B','smile','나는 바리. 강을 따라 꽃을 찾는 나그네이자, 도시와 폐허를 떠도는 길손이지.'],
+  ['M','(자기소개가 벌써 책 첫 문장 같다.)'],
+  ['C',[['{name}입니다. 닷새 동안 잘 부탁드립니다.',1,'c1a'],['꽃을 찾는다니, 어떤 꽃인가요?',2,'c1b'],['칼은 보관함에 맡기셔야 합니다. 규정이라서요.',0,'c1c']]],
+  ['L','c1a'],
+  ['B','smile','{name}. 부르기 좋은 이름이군. 나야말로 잘 부탁하네.'], ['J','c1z'],
+  ['L','c1b'],
+  ['B','surprised','오, 첫 마디에 그걸 묻는 사람은 드문데.'],
+  ['B','smile','긴 이야기라네. 닷새면 서두 정도는 들려줄 수 있겠군.'], ['J','c1z'],
+  ['L','c1c'],
+  ['B','smug','규정이라. 좋지. 지킬 것이 있는 사람은 믿을 만하다네.'],
+  ['B','normal','다만 이 칼들은 내 오랜 길동무라서. 사유서를 쓰면 되겠는가? 글 쓰는 건 자신 있네.'],
+  ['M','(선배가 말한 게 이거구나.)'],
+  ['L','c1z'],
+  ['N','사원증 발급, 숙소 배정, 구내식당 안내. 바리는 설명마다 고개를 끄덕이며 수첩에 무언가를 적었다.'],
+  ['M','뭘 그렇게 적으세요?'],
+  ['B','normal','오늘 본 것들. 누군가에게 들려줄 이야기는 많을수록 좋으니.'],
+  ['N','누구에게, 라고는 묻지 못했다.'],
+
+  ['hide'], ['bg','bookshop'], ['chapter','둘째 날','헌책방'],
+  ['N','안내 이틀째. 바리가 가고 싶다고 한 곳은 뒷골목의 헌책방이었다.'],
+  ['show'],
+  ['B','smile','좋은 냄새지. 오래된 종이에서는 오래된 약속 같은 냄새가 나.'],
+  ['N','바리는 책등을 하나하나 손끝으로 훑었다. 고르는 손길이 익숙했다.'],
+  ['B','normal','자네라면 어떤 책을 고르겠나. 혼자 긴 시간을 보내는 이에게 줄 책이라면.'],
+  ['C',[['모험 소설이요. 방 안에서도 멀리 갈 수 있으니까요.',2,'c2a'],['실용서요. 요리책이나 수리 안내서 같은.',1,'c2b'],['글쎄요. 책은 잘 안 읽어서.',0,'c2c']]],
+  ['L','c2a'],
+  ['B','surprised','…….'],
+  ['B','smile','나와 같은 생각이군. 그 친구도 모험담을 가장 좋아했다네.'],
+  ['N','바리는 낡은 모험 소설 세 권을 품에 안았다.'], ['J','c2z'],
+  ['L','c2b'],
+  ['B','smile','살림에 보탬이 되는 책이라. 다정한 생각이네. 한 권 넣어 두지.'], ['J','c2z'],
+  ['L','c2c'],
+  ['B','smug','솔직해서 좋군. 그럼 오늘부터 읽으면 되겠네.'],
+  ['N','바리는 얇은 책 한 권을 내 손에 쥐여 주었다. 숙제가 생겼다.'],
+  ['L','c2z'],
+  ['M','선물하실 분이 계신가 봐요.'],
+  ['B','normal','오래 책을 보내 온 곳이 있었지. 이제는 직접 건넬 수 있게 되었지만, 버릇이 남아서.'],
+  ['B','sad','받는 이는 보낸 이가 누구인지 몰랐다네. 그래도 괜찮았어.'],
+  ['C',[['그래도 답장은 받고 싶지 않으셨어요?',1,'c3a'],['이름 없이 오래 보내는 건, 아무나 못 하는 일이에요.',2,'c3b'],['(말없이 책값의 절반을 낸다)',1,'c3c']]],
+  ['L','c3a'],
+  ['B','smile','받고 싶었지. 하지만 기다리는 것도 이야기의 일부라네.'], ['J','c3z'],
+  ['L','c3b'],
+  ['B','shy','……자네는 가끔 불쑥 정곡을 찌르는군.'], ['J','c3z'],
+  ['L','c3c'],
+  ['B','surprised','허, 이건 회사 경비인가?'],
+  ['M','제 돈이요.'],
+  ['B','happy','그럼 이 책은 우리 둘이 보내는 것으로 하세.'],
+  ['L','c3z'],
+
+  ['hide'], ['bg','alley'], ['chapter','셋째 날','해결사의 법도'],
+  ['N','야근이 끝난 밤. 숙소까지 바래다주겠다는 바리와 뒷골목을 지나는 길이었다.'],
+  ['O','???','거기. 가진 거 내려놓고 가지?'],
+  ['N','골목 양쪽에서 그림자 셋이 걸어 나왔다. 손에는 쇠파이프.'],
+  ['show'],
+  ['B','serious','{name}, 내 뒤로.'],
+  ['N','칼이 뽑히는 소리는 듣지 못했다. 정신을 차렸을 때 셋 중 둘은 바닥에 주저앉아 있었고, 하나는 무기를 놓친 뒤였다.'],
+  ['N','바리는 칼끝을 내리고 한 걸음 물러섰다.'],
+  ['B','serious','숨을 고르게. 기다려 주겠네.'],
+  ['O','괴한','……뭐?'],
+  ['B','normal','쓰러진 상대에게는 일어설 시간을 준다. 해결사의 법도라네.'],
+  ['C',[['(바리 옆에 서서 같이 기다린다)',2,'c4a'],['지금 끝내야죠! 위험하잖아요!',0,'c4b'],['멋있긴 한데, 저쪽이 도망가면 어쩌죠?',1,'c4c']]],
+  ['L','c4a'],
+  ['N','다리가 떨렸지만 바리 옆에 섰다.'],
+  ['B','surprised','……자네.'],
+  ['B','smile','떨면서도 서 있군. 그걸 용기라고 부른다네.'], ['J','c4z'],
+  ['L','c4b'],
+  ['B','serious','위험하지. 그래도 지킬 것을 지키지 않으면 나는 그저 칼 든 사람일 뿐이야.'], ['J','c4z'],
+  ['L','c4c'],
+  ['B','smug','도망가면 좋은 일이지. 싸움이 하나 줄었으니.'],
+  ['L','c4z'],
+  ['N','괴한들은 서로 눈치를 보더니 파이프를 버리고 달아났다.'],
+  ['B','smile','보게. 줄지 않았나.'],
+  ['M','옛날부터 그러셨어요?'],
+  ['B','normal','옛날에 삼 일 밤낮을 겨룬 상대가 있었지. 서로 숨 고를 틈을 주면서. 그 덕에 벗이 되었다네.'],
+  ['B','sad','고집이 세고, 꿈 이야기를 좋아하던 벗이었어.'],
+
+  ['hide'], ['bg','river'], ['chapter','넷째 날','강가'],
+  ['N','휴일. 바리가 보여 주고 싶은 곳이 있다고 했다. 도시 끝, 강이 보이는 둑.'],
+  ['show'],
+  ['B','normal','나는 강을 따라 걷는 버릇이 있네. 꽃은 대개 물가에 피니까.'],
+  ['M','찾는 꽃은 아직 못 찾으신 거죠.'],
+  ['B','smile','못 찾았지. 하지만 찾는 동안 본 것들이 있네. 수백 가지 모험, 수천 가지 이야기.'],
+  ['B','smug','하나 들려줄까? 대신 자네도 하나 내놓아야 하네. 공평하게.'],
+  ['C',[['입사 첫날 엘리베이터에 갇힌 이야기라도 괜찮다면요.',2,'c5a'],['저는 들려드릴 만한 이야기가 없어요.',0,'c5b'],['바리 씨 이야기를 먼저 듣고 정할게요.',1,'c5c']]],
+  ['L','c5a'],
+  ['N','나는 엘리베이터에 네 시간 갇힌 채 비상 통화로 교정 업무를 본 이야기를 했다.'],
+  ['B','happy','하하! 갇혀서도 오탈자를 고쳤다고? 훌륭한 모험담이군. 수첩에 적어 두겠네.'], ['J','c5z'],
+  ['L','c5b'],
+  ['B','normal','이야기가 없는 사람은 없네. 아직 이야기라고 부르지 않았을 뿐이지.'], ['J','c5z'],
+  ['L','c5c'],
+  ['B','smug','흥정을 할 줄 아는군. 좋네, 외상으로 해 두지.'],
+  ['L','c5z'],
+  ['B','normal','내 차례군. 옛날 어느 성에, 내일이 없는 이들이 살았다네.'],
+  ['B','normal','그 성의 주인에게 한 나그네가 약속을 했지. 내일을 주겠다고. 꿈꿀 것을 주겠다고.'],
+  ['B','sad','약속은 반만 지켜졌네. 그래서 나그네는 아직 걷고 있지.'],
+  ['C',[['반은 지킨 거잖아요. 나머지 반은 지금 걷는 중이고요.',2,'c6a'],['그 나그네, 좀 쉬어도 되지 않을까요.',1,'c6b'],['슬픈 이야기네요.',0,'c6c']]],
+  ['L','c6a'],
+  ['B','surprised','……그렇게 세는 법도 있군.'],
+  ['B','shy','교정만 잘하는 줄 알았더니, 남의 문장까지 고쳐 주는군.'], ['J','c6z'],
+  ['L','c6b'],
+  ['B','smile','쉬고 있네. 지금 이렇게.'], ['J','c6z'],
+  ['L','c6c'],
+  ['B','normal','슬프기만 한 이야기는 아니라네. 아직 끝나지 않았으니.'],
+  ['L','c6z'],
+  ['N','강물 위로 해가 기울었다. 바리는 둑에 핀 이름 모를 들꽃을 한참 내려다보았다.'],
+
+  ['hide'], ['bg','rooftop'], ['chapter','다섯째 날','하얀 달'],
+  ['N','안내 업무 마지막 밤. 인수인계 서류에 서명을 받으러 옥상에 올라갔다.'],
+  ['N','달이 유난히 희었다.'],
+  ['show'],
+  ['B','normal','왔는가. 서류라면 다 써 두었네. 세 장이면 될 것을 열두 장 썼지만.'],
+  ['M','……또 편지처럼 쓰셨네요.'],
+  ['B','smile','버릇이라네.'],
+  ['B','serious','내일부터 나는 버스에 오르네. 긴 길이 될 걸세.'],
+  ['C',[['돌아오시면 다음 이야기를 들려주세요. 기다릴게요.',2,'c7a'],['편지 주세요. 이번엔 받는 사람이 누군지 아는 편지로.',3,'c7b'],['몸조심하세요. 안내 업무는 여기까지입니다.',0,'c7c']]],
+  ['L','c7a'],
+  ['B','smile','기다리는 것도 이야기의 일부라고 했지. 자네가 기다려 준다면 돌아올 이유가 하나 늘겠군.'], ['J','c7z'],
+  ['L','c7b'],
+  ['B','surprised','…….'],
+  ['B','shy','허, 이건 한 방 맞았군.'], ['J','c7z'],
+  ['L','c7c'],
+  ['B','normal','그렇군. 닷새 동안 고마웠네, {name}.'],
+  ['L','c7z'],
+  ['route'],
+
+  ['L','endA'],
+  ['B','shy','{name}. 나는 오래전에 누군가에게 내일을 약속한 적이 있네.'],
+  ['B','normal','그 약속은 아직 내 것이고, 끝까지 지킬 걸세. 그건 변하지 않아.'],
+  ['B','smile','하지만 닷새 동안 알게 되었지. 약속을 지키러 가는 길에도 돌아올 곳은 있어도 된다는 것을.'],
+  ['N','바리가 외투 주머니에서 무언가를 꺼냈다. 강둑에 피어 있던 들꽃을 눌러 말린 책갈피였다.'],
+  ['B','shy','찾던 꽃은 아니네. 하지만 자네와 함께 본 꽃이지.'],
+  ['B','smile','돌아오면 삼 일 밤낮으로 이야기를 들려주겠네. 숨 고를 틈은 주면서.'],
+  ['M','법도니까요?'],
+  ['B','happy','아니. 자네 얼굴을 오래 보고 싶어서라네.'],
+  ['N','하얀 달 아래에서, 나그네는 처음으로 돌아올 날짜를 정했다.'],
+  ['end','A'],
+
+  ['L','endB'],
+  ['B','smile','자네는 좋은 길동무였네. 닷새짜리였지만.'],
+  ['B','normal','편지를 쓰겠네. 이번에는 보낸 이의 이름을 적어서.'],
+  ['hide'],
+  ['N','한 달 뒤, 내 책상에 열두 장짜리 편지가 도착했다. 오탈자는 하나도 없었다.'],
+  ['N','나는 답장을 쓰기 시작했다. 엘리베이터 이야기보다는 나은 이야기로.'],
+  ['end','B'],
+
+  ['L','endC'],
+  ['N','바리는 서류를 건네고 가볍게 목례했다.'],
+  ['hide'], ['bg','office'],
+  ['N','다음 날 아침, 내 책상에는 얇은 책 한 권이 놓여 있었다. 쪽지도 이름도 없이.'],
+  ['N','누가 두고 갔는지는 알 것 같았다. 원래 그런 식으로 책을 보내는 사람이니까.'],
+  ['N','첫 장을 넘겼다. 모험 이야기였다.'],
+  ['end','C'],
+];
+const ENDS = {
+  A: ['맺음 하나', '내일의 약속', '나그네에게 돌아올 곳이 생겼습니다.'],
+  B: ['맺음 둘', '길동무', '이름이 적힌 편지가 오가기 시작했습니다. 더 가까워질 길도 있습니다.'],
+  C: ['맺음 셋', '스쳐 간 나그네', '책 한 권만 남았습니다. 바리의 이야기에 조금 더 귀 기울여 보세요.'],
+};
+const MAX_AFF = 15, ROUTE_A = 11, ROUTE_B = 6;
+
+/* ───────── 그림 (전부 코드로 그린 것. assets/ 폴더에 이미지를 넣으면 그쪽을 쓴다) ───────── */
+const EXPRS = ['normal','smile','happy','smug','serious','surprised','shy','sad'];
+const BGS = ['office','bookshop','alley','river','rooftop'];
+const ART = { sprite: {}, bg: {} };
+
+function face(e) {
+  const lid = '#1b2740', eye = (cx, flip) => {
+    const s = flip ? -1 : 1, dx = e === 'shy' ? 3 : 0, dy = e === 'sad' ? 2 : 0;
+    if (e === 'happy') return `<path d="M${cx - 14} 161 Q${cx} 149 ${cx + 14} 161" fill="none" stroke="${lid}" stroke-width="3" stroke-linecap="round"/>`;
+    const ry = e === 'surprised' ? 10 : e === 'smug' ? 5.5 : 8, rx = e === 'surprised' ? 8 : 7;
+    return `<ellipse cx="${cx + dx}" cy="${160 + dy}" rx="${rx}" ry="${ry}" fill="#8fd0f2"/><circle cx="${cx + dx}" cy="${160 + dy}" r="3" fill="#1f3a5c"/><circle cx="${cx + dx - 2}" cy="${157 + dy}" r="1.5" fill="#fff"/>` +
+      `<path d="M${cx + 14 * s} ${e === 'smug' ? 156 : 153} Q${cx} ${e === 'surprised' ? 144 : e === 'smug' ? 152 : 148} ${cx - 15 * s} ${e === 'smug' ? 160 : 159}" fill="none" stroke="${lid}" stroke-width="3" stroke-linecap="round"/>`;
+  };
+  const brow = { serious: [146, 139], sad: [137, 145], surprised: [131, 131], smug: [137, 139] }[e] || [140, 140];
+  const b = (cx, s) => `<path d="M${cx + 13 * s} ${brow[0]} L${cx - 13 * s} ${brow[1]}" stroke="#2a5aa6" stroke-width="2.6" stroke-linecap="round"/>`;
+  const mouth = {
+    normal: 'M191 197 Q200 201 209 197', smile: 'M187 195 Q200 205 213 195', happy: 'M186 193 Q200 211 214 193 Z',
+    smug: 'M189 198 Q203 201 214 191', serious: 'M191 198 L209 198', surprised: 'M200 193 a5 6 0 1 0 .1 0 Z',
+    shy: 'M191 198 Q196 194 200 198 Q204 202 209 197', sad: 'M191 200 Q200 195 209 200',
+  }[e];
+  const fillM = e === 'happy' || e === 'surprised' ? '#7a3b46' : 'none';
+  const blush = e === 'shy' ? '<ellipse cx="170" cy="180" rx="13" ry="6" fill="#f08ea0" opacity=".5"/><ellipse cx="230" cy="180" rx="13" ry="6" fill="#f08ea0" opacity=".5"/>' : '';
+  return blush + eye(176, false) + eye(224, true) + b(176, 1) + b(224, -1) +
+    `<path d="${mouth}" fill="${fillM}" stroke="#8a4a55" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+function bariSVG(e) {
+  return `<svg viewBox="0 0 400 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="바리">
+  <path d="M138 150 Q136 68 200 64 Q264 68 262 150 L264 204 Q200 222 136 204 Z" fill="#285293"/>
+  <path d="M150 232 L250 232 L270 700 L130 700 Z" fill="#14161c"/>
+  <path d="M110 240 L152 230 L134 700 L28 700 L50 340 Q58 262 110 240 Z" fill="#2b62b8"/>
+  <path d="M290 240 L248 230 L266 700 L372 700 L350 340 Q342 262 290 240 Z" fill="#2b62b8"/>
+  <path d="M152 230 L118 238 L138 336 L172 262 Z" fill="#3b78d2"/><path d="M248 230 L282 238 L262 336 L228 262 Z" fill="#3b78d2"/>
+  <rect x="60" y="500" width="62" height="78" rx="6" fill="#24509a" stroke="#193b78" stroke-width="3"/>
+  <rect x="278" y="500" width="62" height="78" rx="6" fill="#24509a" stroke="#193b78" stroke-width="3"/>
+  <path d="M50 340 Q70 420 46 520" fill="none" stroke="#1f4a94" stroke-width="4"/><path d="M350 340 Q330 420 354 520" fill="none" stroke="#1f4a94" stroke-width="4"/>
+  <path d="M186 196 H214 V232 H186 Z" fill="#e2d3cf"/>
+  <path d="M166 214 L234 214 L246 250 L154 250 Z" fill="#1d212b"/>
+  <path d="M200 244 V700" stroke="#9aa3b5" stroke-width="5"/><rect x="191" y="296" width="18" height="34" rx="3" fill="#c3cad8" stroke="#6b7488" stroke-width="2"/>
+  <path d="M160 640 L22 500" stroke="#0e0f14" stroke-width="11" stroke-linecap="round"/><path d="M96 575 L74 553" stroke="#3b78d2" stroke-width="11"/>
+  <path d="M150 600 L14 446" stroke="#2a2420" stroke-width="12" stroke-linecap="round"/><path d="M46 482 L14 446" stroke="#c9b37a" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="74" cy="528" r="9" fill="none" stroke="#c9b37a" stroke-width="3"/>
+  <path d="M148 142 Q148 214 200 224 Q252 214 252 142 Q252 88 200 88 Q148 88 148 142 Z" fill="#f3e8e3"/>
+  ${face(e)}
+  <path d="M200 76 Q150 78 142 140 Q136 205 126 304 Q140 316 154 298 Q158 222 164 164 Q174 112 200 94 Z" fill="#3b7bd6"/>
+  <path d="M200 76 Q250 78 258 140 Q264 205 274 304 Q260 316 246 298 Q242 222 236 164 Q226 112 200 94 Z" fill="#3b7bd6"/>
+  <path d="M200 68 Q134 66 134 152 Q150 100 200 90 Q250 100 266 152 Q266 66 200 68 Z" fill="#4687e0"/>
+  <path d="M150 150 Q146 220 138 290 M250 150 Q254 220 262 290" fill="none" stroke="#2a5aa6" stroke-width="2"/>
+  </svg>`;
+}
+function rng(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+function bgSVG(name) {
+  const r = rng(name.length * 7919 + 13), R = (a, b) => a + r() * (b - a);
+  let g = '';
+  const sky = (id, a, b, c) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset=".6" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs><rect width="1600" height="900" fill="url(#${id})"/>`;
+  const skyline = (y, col, lit) => { let s = ''; for (let x = 0; x < 1600;) { const w = R(50, 130), h = R(60, 260); s += `<rect x="${x}" y="${y - h}" width="${w + 2}" height="${h + 400}" fill="${col}"/>`; if (lit) for (let k = 0; k < h / 26; k++) if (r() > .45) s += `<rect x="${x + R(8, w - 14)}" y="${y - h + 10 + k * 24}" width="7" height="9" fill="${lit}" opacity="${R(.3, .9)}"/>`; x += w; } return s; };
+  if (name === 'office') {
+    g = sky('gO', '#1a2440', '#1c2a4a', '#10182c') + `<rect x="140" y="90" width="1320" height="520" fill="#0b1226"/>` + `<g transform="translate(140 90)">` + sky('gO2', '#0d1a3a', '#24406e', '#3a5a8a').replace('1600', '1320').replace('900', '520') + `</g>`;
+    g += `<g clip-path="inset(0)">${skyline(610, '#0c1428', '#ffd98a')}</g><rect x="0" y="0" width="140" height="900" fill="#172038"/><rect x="1460" y="0" width="140" height="900" fill="#172038"/><rect x="0" y="0" width="1600" height="90" fill="#172038"/>`;
+    for (let x = 140; x <= 1460; x += 220) g += `<rect x="${x - 5}" y="90" width="10" height="520" fill="#2a3658"/>`;
+    g += `<rect x="140" y="340" width="1320" height="8" fill="#2a3658"/><rect x="0" y="610" width="1600" height="290" fill="#121a30"/><rect x="0" y="610" width="1600" height="10" fill="#2a3658"/>`;
+    for (let x = 80; x < 1600; x += 400) g += `<rect x="${x}" y="700" width="300" height="200" fill="#1c2643"/><rect x="${x + 30}" y="660" width="90" height="40" fill="#26335a"/><rect x="${x + 180}" y="640" width="70" height="60" fill="#0e1528" stroke="#3a4a78" stroke-width="3"/>`;
+  } else if (name === 'bookshop') {
+    g = `<rect width="1600" height="900" fill="#1a1512"/>`;
+    const cols = ['#7a3b32', '#35506e', '#5d6b3a', '#8a6a3a', '#4a3a66', '#2f5a57', '#9a8a70', '#6a2f45'];
+    for (let row = 0; row < 5; row++) { const y = 40 + row * 172; g += `<rect x="0" y="${y + 150}" width="1600" height="22" fill="#3a2a1e"/>`; for (let x = 20; x < 1580;) { const w = R(16, 44), h = R(96, 146); if (r() > .06) g += `<rect x="${x}" y="${y + 150 - h}" width="${w}" height="${h}" fill="${cols[Math.floor(r() * cols.length)]}"/><rect x="${x + 3}" y="${y + 162 - h}" width="${w - 6}" height="4" fill="#e8d9b0" opacity=".5"/>`; x += w + 3; } }
+    g += `<defs><radialGradient id="gB"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".55"/><stop offset="1" stop-color="#ffcf7a" stop-opacity="0"/></radialGradient></defs><circle cx="800" cy="150" r="620" fill="url(#gB)"/><path d="M800 0 V90" stroke="#0c0906" stroke-width="5"/><path d="M750 130 L770 90 H830 L850 130 Z" fill="#0c0906"/><ellipse cx="800" cy="133" rx="40" ry="9" fill="#ffe2a8"/><rect width="1600" height="900" fill="#0a0806" opacity=".35"/>`;
+  } else if (name === 'alley') {
+    g = sky('gA', '#070b18', '#111a33', '#1a2442') + `<path d="M0 0 H560 L640 900 H0 Z" fill="#0c1020"/><path d="M1600 0 H1040 L960 900 H1600 Z" fill="#0e1326"/>`;
+    for (let i = 0; i < 26; i++) { const left = r() > .5, x = left ? R(40, 480) : R(1100, 1540), y = R(60, 620); g += `<rect x="${x}" y="${y}" width="46" height="62" fill="${r() > .7 ? '#ffd98a' : '#1b2442'}" opacity="${R(.5, .9)}"/>`; }
+    g += `<rect x="330" y="300" width="150" height="56" fill="none" stroke="#ff6b8e" stroke-width="6"/><rect x="330" y="300" width="150" height="56" fill="#ff6b8e" opacity=".18"/><rect x="1150" y="210" width="60" height="190" fill="none" stroke="#5bd0e6" stroke-width="6"/><rect x="1150" y="210" width="60" height="190" fill="#5bd0e6" opacity=".15"/>`;
+    g += `<path d="M560 900 L690 640 H910 L1040 900 Z" fill="#141b33"/><ellipse cx="760" cy="840" rx="150" ry="18" fill="#ff6b8e" opacity=".18"/><ellipse cx="900" cy="780" rx="90" ry="10" fill="#5bd0e6" opacity=".2"/>`;
+  } else if (name === 'river') {
+    g = sky('gR', '#2a2f66', '#c8708a', '#f2b27a') + `<circle cx="1080" cy="470" r="70" fill="#ffe3b0"/>` + skyline(520, '#3a2f5e', null) + `<rect y="520" width="1600" height="230" fill="#3d4f8f"/>`;
+    for (let i = 0; i < 46; i++) { const y = R(530, 740), w = R(40, 200); g += `<rect x="${R(0, 1500)}" y="${y}" width="${w}" height="3" fill="${Math.abs(i % 5) === 0 ? '#ffe3b0' : '#7f93d6'}" opacity="${R(.25, .7)}"/>`; }
+    g += `<rect x="1030" y="525" width="100" height="220" fill="#ffd9a0" opacity=".22"/><path d="M0 740 Q400 700 800 735 T1600 720 V900 H0 Z" fill="#1f3a34"/>`;
+    for (let i = 0; i < 150; i++) { const x = R(0, 1600), y = R(745, 890); g += `<path d="M${x} ${y} q${R(-6, 6)} -${R(16, 40)} ${R(-10, 10)} -${R(30, 56)}" stroke="#2f5a46" stroke-width="3" fill="none"/>`; }
+    for (let i = 0; i < 34; i++) { const x = R(20, 1580), y = R(760, 880), c = ['#fff', '#f0b8c4', '#bcd6ff'][i % 3]; g += `<circle cx="${x}" cy="${y}" r="6" fill="${c}"/><circle cx="${x}" cy="${y}" r="2.2" fill="#f2c94c"/>`; }
+  } else {
+    g = sky('gT', '#050916', '#0d1836', '#1c2c58');
+    for (let i = 0; i < 140; i++) g += `<circle cx="${R(0, 1600)}" cy="${R(0, 560)}" r="${R(.6, 2)}" fill="#fff" opacity="${R(.3, .95)}"/>`;
+    g += `<defs><radialGradient id="gM"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><circle cx="1180" cy="230" r="330" fill="url(#gM)"/><circle cx="1180" cy="230" r="120" fill="#f6f8fc"/><circle cx="1140" cy="200" r="20" fill="#dfe5ef"/><circle cx="1215" cy="270" r="28" fill="#e3e8f1"/><circle cx="1200" cy="180" r="11" fill="#dfe5ef"/>`;
+    g += skyline(690, '#0a1228', '#ffd98a') + `<rect y="740" width="1600" height="160" fill="#0c1326"/><rect y="640" width="1600" height="9" fill="#2a3658"/>`;
+    for (let x = 30; x < 1600; x += 90) g += `<rect x="${x}" y="640" width="6" height="100" fill="#2a3658"/>`;
+  }
+  return `<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
+function probe(url) { return new Promise(res => { const im = new Image(); im.onload = () => res(url); im.onerror = () => res(null); im.src = url; }); }
+async function loadArt() {
+  if (window.__EMBED__) return;   // 한 장짜리 묶음판에는 딸린 파일이 없다
+  const jobs = [];
+  jobs.push(probe('assets/bari.png').then(u => { if (u) ART.sprite.default = u; }));
+  for (const e of EXPRS) jobs.push(probe(`assets/bari_${e}.png`).then(u => { if (u) ART.sprite[e] = u; }));
+  for (const b of BGS) for (const ext of ['jpg', 'png']) jobs.push(probe(`assets/bg_${b}.${ext}`).then(u => { if (u) ART.bg[b] = u; }));
+  await Promise.all(jobs);
+  paint();
+}
+
+/* ───────── 진행 ───────── */
+const $ = id => document.getElementById(id);
+const labels = {}; STORY.forEach((n, i) => { if (n[0] === 'L') labels[n[1]] = i; });
+let S = null, typing = null, full = '', waiting = null, log = [], sound = true, actx = null;
+
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem('bari-vn:' + k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem('bari-vn:' + k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem('bari-vn:' + k); } catch {} },
+};
+function blip(f, d) {
+  if (!sound) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
+    o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(.0001, t + (d || .12));
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t + (d || .12));
+  } catch {}
+}
+const fill = s => s.replaceAll('{name}', S.name);
+
+function paint() {
+  if (!S) { $('bg').innerHTML = bgSVG('rooftop'); return; }
+  $('bg').innerHTML = ART.bg[S.bg] ? `<img src="${ART.bg[S.bg]}" alt="">` : bgSVG(S.bg);
+  const img = ART.sprite[S.expr] || ART.sprite.default;
+  $('sprite').innerHTML = img ? `<img src="${img}" alt="바리">` : bariSVG(S.expr);
+  $('sprite').classList.toggle('off', !S.vis);
+  $('chapter').textContent = S.chapter;
+  const on = Math.round(S.aff / MAX_AFF * 5);
+  [...$('aff').children].forEach((el, i) => el.classList.toggle('on', i < on));
+}
+function say(who, text, cls) {
+  full = fill(text);
+  $('who').textContent = who; $('who').hidden = !who;
+  $('text').className = cls || '';
+  log.push([who, full]); if (log.length > 200) log.shift();
+  $('next').hidden = true; $('text').textContent = '';
+  let n = 0; clearInterval(typing);
+  typing = setInterval(() => {
+    n++; $('text').textContent = full.slice(0, n);
+    if (n >= full.length) endType();
+  }, 26);
+  waiting = 'line';
+}
+function endType() { clearInterval(typing); typing = null; $('text').textContent = full; $('next').hidden = false; }
+
+function run() {
+  for (;;) {
+    const n = STORY[S.i];
+    if (!n) return;
+    store.set('save', S);
+    const k = n[0];
+    if (k === 'bg') { S.bg = n[1]; paint(); }
+    else if (k === 'show') { S.vis = true; paint(); }
+    else if (k === 'hide') { S.vis = false; paint(); }
+    else if (k === 'L') {}
+    else if (k === 'J') { S.i = labels[n[1]]; continue; }
+    else if (k === 'route') { S.i = labels[S.aff >= ROUTE_A ? 'endA' : S.aff >= ROUTE_B ? 'endB' : 'endC']; continue; }
+    else if (k === 'chapter') {
+      S.chapter = n[1] + ' · ' + n[2]; paint();
+      $('card-a').textContent = n[1]; $('card-b').textContent = n[2];
+      $('card').hidden = false; $('dialog').hidden = true; waiting = 'card'; return;
+    }
+    else if (k === 'N') { say('', n[1], 'narr'); return; }
+    else if (k === 'M') { say(n[1].startsWith('(') ? '' : S.name, n[1], n[1].startsWith('(') ? 'think' : ''); return; }
+    else if (k === 'B') { S.expr = n[1]; S.vis = true; paint(); say('바리', n[2]); return; }
+    else if (k === 'O') { say(n[1], n[2]); return; }
+    else if (k === 'C') { choose(n[1]); return; }
+    else if (k === 'end') { finish(n[1]); return; }
+    S.i++;
+  }
+}
+function advance() {
+  if (waiting === 'line') {
+    if (typing) { endType(); return; }
+    blip(520, .06); S.i++; run();
+  } else if (waiting === 'card') {
+    $('card').hidden = true; $('dialog').hidden = false; $('text').textContent = ''; $('who').hidden = true; S.i++; run();
+  }
+}
+function choose(opts) {
+  waiting = 'choice';
+  const box = $('choices'); box.innerHTML = ''; box.hidden = false;
+  opts.forEach(([t, aff, go], i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.id = 'choice-' + i; b.textContent = fill(t);
+    b.onclick = () => {
+      box.hidden = true; log.push(['선택', fill(t)]);
+      if (aff > 0) { S.aff += aff; toast(aff >= 2 ? '바리의 마음에 깊이 남았다' : '바리가 미소 지었다'); blip(880, .25); setTimeout(() => blip(1175, .3), 110); } else blip(330, .1);
+      S.i = labels[go]; paint(); run();
+    };
+    box.appendChild(b);
+  });
+  box.firstChild.focus();
+}
+let toastT;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 1800); }
+function finish(key) {
+  waiting = null; store.del('save');
+  const seen = store.get('ends') || []; if (!seen.includes(key)) { seen.push(key); store.set('ends', seen); }
+  const [a, b, c] = ENDS[key];
+  $('end-a').textContent = a; $('end-b').textContent = b; $('end-c').textContent = c;
+  $('dialog').hidden = true; $('end').hidden = false;
+}
+function begin(state) {
+  S = state; log = [];
+  for (const id of ['title', 'end', 'card', 'choices', 'log']) $(id).hidden = true;
+  $('top').hidden = false; $('dialog').hidden = false; $('text').textContent = '';
+  paint(); run();
+}
+function home() {
+  clearInterval(typing); typing = null; waiting = null; S = null;
+  for (const id of ['top', 'dialog', 'end', 'card', 'choices', 'log']) $(id).hidden = true;
+  $('sprite').classList.add('off'); $('title').hidden = false;
+  $('btn-cont').hidden = !store.get('save');
+  const seen = (store.get('ends') || []).length;
+  $('seen').textContent = seen ? `지금까지 본 맺음 ${seen} / 3` : '';
+  paint();
+}
+
+$('btn-start').onclick = () => begin({ i: 0, aff: 0, name: $('name').value.trim() || '신입', bg: 'office', expr: 'normal', vis: false, chapter: '' });
+$('btn-cont').onclick = () => { const s = store.get('save'); if (s) begin(s); };
+$('btn-again').onclick = home;
+$('btn-home').onclick = home;
+$('btn-snd').onclick = e => { sound = !sound; e.currentTarget.textContent = sound ? '소리 켬' : '소리 끔'; };
+$('btn-log').onclick = () => {
+  $('logbody').innerHTML = '';
+  for (const [w, t] of log) { const d = document.createElement('div'); if (!w) d.className = 'n'; if (w) { const b = document.createElement('b'); b.textContent = w; d.appendChild(b); } d.appendChild(document.createTextNode(t)); $('logbody').appendChild(d); }
+  $('log').hidden = false; $('log').scrollTop = $('log').scrollHeight;
+};
+$('btn-logx').onclick = () => { $('log').hidden = true; };
+$('box').onclick = advance;
+$('card').onclick = advance;
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+  if ((e.key === ' ' || e.key === 'Enter') && $('log').hidden) { e.preventDefault(); advance(); }
+  if (e.key === 'Escape') $('log').hidden = true;
+});
+
+home();
+loadArt();
+</script>
+<!--/BODY-->
+</body>
+</html>
