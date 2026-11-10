@@ -1,0 +1,39 @@
+{
+  "hotkeys": { "toggle": "f8", "quit": "f9" },
+  "compass": {
+    "key": "3",
+    "click_to_use": true,
+    "equip_delay": 0.5,
+    "show_delay": 1.0,
+    "scan_interval": 10
+  },
+  "fishing": {
+    "rod_key": "2",
+    "equip_delay": 0.5,
+    "cast_hold": 0.0,
+    "bite_timeout": 40,
+    "poll": 0.1,
+    "reel_seconds": 5,
+    "reel_interval": 0.1,
+    "spawn_wait": 3,
+    "max_casts": 20
+  },
+  "fight": {
+    "weapon_key": "1",
+    "equip_delay": 0.5,
+    "attack_interval": 0.15,
+    "skills": [
+      { "key": "z", "cooldown": 8 },
+      { "key": "x", "cooldown": 12 },
+      { "key": "c", "cooldown": 15 },
+      { "key": "v", "cooldown": 20 }
+    ],
+    "gone_seconds": 5,
+    "timeout": 600
+  },
+  "detectors": {
+    "serpent": { "type": "template", "image": "images/serpent.png", "region": null, "threshold": 0.8 },
+    "bite": { "type": "template", "image": "images/bite.png", "region": null, "threshold": 0.8 },
+    "boss": { "type": "template", "image": "images/boss.png", "region": null, "threshold": 0.8 }
+  }
+}
