@@ -18,7 +18,9 @@
     "quiz:build": "node ox-quiz/build.mjs",
     "quiz:e2e": "node ox-quiz/test/e2e.cjs",
     "quiz:web": "node ox-quiz/build-web.mjs",
-    "quiz:e2e:web": "node ox-quiz/test/e2e-web.cjs"
+    "quiz:e2e:web": "node ox-quiz/test/e2e-web.cjs",
+    "rpg:build": "node bald-rpg/build.mjs",
+    "rpg:test": "node bald-rpg/test/flow.cjs"
   },
   "dependencies": {
     "peerjs": "^1.5.5",
